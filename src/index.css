@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: #152A3A;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Money and roll numbers line up in columns */
+table td, table th { font-variant-numeric: tabular-nums; }
+
+/* Keyboard users must always see where they are. A thick, high-contrast
+   ring is easier for everyone to spot, not just keyboard users. */
+:focus-visible {
+  outline: 3px solid #0F7A70;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button, a, input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+::selection {
+  background: #AFE1DB;
+}
+
+/* Slim, quiet scrollbars for the sidebar and scrollable tables. */
+.thin-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Printing. Everything except the document itself is hidden, and a copy is
+   never allowed to split across two pages. */
+@media print {
+  .no-print { display: none !important; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+  body { background: #fff; }
+
+  @page { size: A4 portrait; margin: 10mm; }
+
+  .print-area section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
