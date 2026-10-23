@@ -1,7 +1,7 @@
 // Review applications. Approving creates the student and parent logins.
 import { useEffect, useState } from "react";
 import { FileCheck2, Paperclip, KeyRound } from "lucide-react";
-import api, { errorText, fileUrl } from "../../api";
+import api, { errorText, downloadFile } from "../../api";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
 } from "../../components/ui.jsx";
@@ -187,7 +187,8 @@ function Review({ application, classes, onCancel, onApproved, onRejected }) {
 
           {application.document ? (
             <a
-              href={fileUrl(application.document)}
+              href="#"
+                onClick={function (e) { e.preventDefault(); downloadFile(application.document); }}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-4 font-medium"

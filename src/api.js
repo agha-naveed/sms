@@ -51,4 +51,23 @@ export function fileUrl(file) {
   return api.defaults.baseURL.replace(/\/api\/?$/, "") + "/uploads/" + file;
 }
 
+// Downloads an uploaded file. For Cloudinary files the server first signs a
+// short-lived download link (so PDFs work even when public PDF delivery is
+// blocked), then the browser saves the file.
+export async function downloadFile(file) {
+  if (!file) return;
+
+  if (!/^https?:\/\//i.test(file)) {
+    window.open(fileUrl(file), "_blank");
+    return;
+  }
+
+  try {
+    const res = await api.get("/files/link", { params: { url: file } });
+    window.location.assign(res.data.url);
+  } catch (err) {
+    window.alert(errorText(err));
+  }
+}
+
 export default api;
