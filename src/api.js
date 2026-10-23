@@ -1,7 +1,7 @@
 // One place for all requests to the server.
 import axios from "axios";
 
-const api = axios.create({ baseURL: "/api" });
+const api = axios.create({ baseURL: "https://sms-backend-production-4398.up.railway.app/api" });
 
 // Attach the saved login token to every request.
 api.interceptors.request.use(function (config) {
