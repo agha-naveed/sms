@@ -2,7 +2,7 @@
 // and their parents both see it, and students can upload their work.
 import { useEffect, useState } from "react";
 import { FileText, Plus, Paperclip } from "lucide-react";
-import api, { errorText } from "../../api";
+import api, { errorText, fileUrl } from "../../api";
 import {
   Page, Card, Table, Button, Select, Input, Textarea, Field, Message, Loading,
   Empty, FileInput, Confirm,
@@ -120,7 +120,7 @@ export default function TeacherAssignments() {
 
               {a.file && (
                 <a
-                  href={"/uploads/" + a.file}
+                  href={fileUrl(a.file)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-3 font-medium"
@@ -324,7 +324,7 @@ function Submissions({ assignment, onBack }) {
                   <td className="py-2.5 pr-4">
                     {r.file ? (
                       <a
-                        href={"/uploads/" + r.file}
+                        href={fileUrl(r.file)}
                         target="_blank"
                         rel="noreferrer"
                         className="text-teal underline font-medium"

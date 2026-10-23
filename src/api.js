@@ -36,4 +36,13 @@ export function errorText(err) {
   return "Could not reach the server. Is it running?";
 }
 
+// The link to an uploaded file. New uploads are stored on Cloudinary and the
+// database holds the full https link, so it is used as it is. Older records
+// that only hold a file name fall back to the server's /uploads folder.
+export function fileUrl(file) {
+  if (!file) return "";
+  if (/^https?:\/\//i.test(file)) return file;
+  return api.defaults.baseURL.replace(/\/api\/?$/, "") + "/uploads/" + file;
+}
+
 export default api;

@@ -37,6 +37,25 @@ export function TimetableGrid({ periods, days, slots, editable, onCellClick, ren
         </thead>
         <tbody>
           {periods.map(function (p) {
+            // A break runs across the whole day: no boxes to fill or click.
+            if (p.kind === "break") {
+              return (
+                <tr key={p.id}>
+                  <td className="align-middle pr-3 py-1.5">
+                    <div className="text-xs font-semibold text-slate-500">{p.label}</div>
+                    <div className="text-[0.7rem] text-slate-400">
+                      {to12Hour(p.start_time)} - {to12Hour(p.end_time)}
+                    </div>
+                  </td>
+                  <td colSpan={days.length} className="p-1">
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 text-center text-xs font-semibold text-amber-700 py-2 tracking-wide">
+                      {p.label}
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+
             return (
               <tr key={p.id}>
                 <td className="align-top pr-3 py-1.5">

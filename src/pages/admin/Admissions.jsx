@@ -1,7 +1,7 @@
 // Review applications. Approving creates the student and parent logins.
 import { useEffect, useState } from "react";
 import { FileCheck2, Paperclip, KeyRound } from "lucide-react";
-import api, { errorText } from "../../api";
+import api, { errorText, fileUrl } from "../../api";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
 } from "../../components/ui.jsx";
@@ -187,7 +187,7 @@ function Review({ application, classes, onCancel, onApproved, onRejected }) {
 
           {application.document ? (
             <a
-              href={"/uploads/" + application.document}
+              href={fileUrl(application.document)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-4 font-medium"
@@ -203,7 +203,7 @@ function Review({ application, classes, onCancel, onApproved, onRejected }) {
           <Card title="Approve and place the student">
             <div className="space-y-4">
               <Field label="Class" required>
-                <Select value={classId} onChange={function (e) { setClassId(e.target.value); }}>
+                <Select value={classId} disabled onChange={function (e) { setClassId(e.target.value); }}>
                   <option value="">Choose a class</option>
                   {classes.map(function (c) { return <option key={c.id} value={c.id}>{c.name}</option>; })}
                 </Select>

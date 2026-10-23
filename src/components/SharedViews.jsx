@@ -4,7 +4,7 @@
 // Only difference: a student can upload assignment work, a parent cannot.
 import { useEffect, useState } from "react";
 import { Printer, Trophy, Wallet, FileText, UploadCloud, Paperclip, Clock, CalendarClock } from "lucide-react";
-import api, { errorText } from "../api";
+import api, { errorText, fileUrl } from "../api";
 import { FeeSlip, ReportCard } from "./PrintDocs.jsx";
 import {
   Card, Table, Pill, Empty, Loading, Message, Button, money,
@@ -253,7 +253,7 @@ export function AssignmentsView({ studentId, canSubmit, isParent }) {
             {a.description && <p className="text-sm text-slate-600 mt-3">{a.description}</p>}
 
             {a.file && (
-              <a href={"/uploads/" + a.file} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-3 font-medium">
+              <a href={fileUrl(a.file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-3 font-medium">
                 <Paperclip size={14} /> Open the teacher's file
               </a>
             )}
@@ -261,7 +261,7 @@ export function AssignmentsView({ studentId, canSubmit, isParent }) {
             {a.submission_id && (
               <p className="text-sm text-slate-600 mt-3">
                 You uploaded{" "}
-                <a href={"/uploads/" + a.submission_file} target="_blank" rel="noreferrer" className="text-teal underline font-medium">
+                <a href={fileUrl(a.submission_file)} target="_blank" rel="noreferrer" className="text-teal underline font-medium">
                   your file
                 </a>{" "}
                 on {new Date(a.submitted_at).toLocaleString()}.

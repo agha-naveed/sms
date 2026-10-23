@@ -2,7 +2,7 @@
 // teachers, students and parents can see it. Nothing is visible to anyone
 // else until Publish is pressed, so half-finished work is never seen.
 import { useEffect, useState } from "react";
-import { CalendarClock, Plus, X, Eye, EyeOff, Clock3 } from "lucide-react";
+import { CalendarClock, Plus, X, Eye, EyeOff, Clock3, Coffee, Wand2 } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty,
@@ -323,10 +323,17 @@ function SlotEditor({ classId, sectionId, day, period, cell, options, onClose, o
 
 // Periods are shared by the whole school, so this list appears once,
 // tucked behind "Manage periods" rather than cluttering every visit.
+// The admin can build the whole day from a few numbers (how long a class
+// is, how long each break is, and where it falls), or add single periods
+// and breaks by hand.
 function PeriodSettings({ onChanged, onError }) {
   const [periods, setPeriods] = useState(null);
-  const [form, setForm] = useState({ label: "", start_time: "", end_time: "" });
+  const [form, setForm] = useState({ kind: "class", label: "", start_time: "", end_time: "" });
   const [busy, setBusy] = useState(false);
+
+  const [day, setDay] = useState({ start_time: "08:00", class_minutes: "40", count: "7" });
+  const [breaks, setBreaks] = useState([{ after: "3", minutes: "20", label: "Break" }]);
+  const [building, setBuilding] = useState(false);
 
   function load() {
     api.get("/timetable/periods").then(function (r) { setPeriods(r.data); }).catch(function (err) { onError(errorText(err)); });
@@ -339,7 +346,7 @@ function PeriodSettings({ onChanged, onError }) {
     setBusy(true);
     try {
       await api.post("/timetable/periods", form);
-      setForm({ label: "", start_time: "", end_time: "" });
+      setForm({ kind: form.kind, label: "", start_time: "", end_time: "" });
       load();
       onChanged();
     } catch (err) {
@@ -359,39 +366,154 @@ function PeriodSettings({ onChanged, onError }) {
     }
   }
 
-  return (
-    <Card title="Periods" icon={Clock3} description="Shared by every class. Times cannot overlap." className="mb-4">
-      {!periods ? (
-        <Loading />
-      ) : periods.length === 0 ? (
-        <p className="text-sm text-slate-400 mb-4">No periods yet. Add the first one below.</p>
-      ) : (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {periods.map(function (p) {
-            return (
-              <span key={p.id} className="inline-flex items-center gap-2 bg-slate-100 rounded-lg px-2.5 py-1.5 text-sm">
-                {p.label} <span className="text-slate-400 text-xs">{p.start_time.slice(0, 5)}-{p.end_time.slice(0, 5)}</span>
-                <button onClick={function () { remove(p.id); }} className="text-slate-400 hover:text-bad" aria-label={"Delete " + p.label}>
-                  <X size={14} />
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
+  function changeBreak(index, field, value) {
+    setBreaks(breaks.map(function (b, i) { return i === index ? { ...b, [field]: value } : b; }));
+  }
 
-      <form onSubmit={add} className="grid sm:grid-cols-4 gap-3 items-end">
-        <Field label="Label">
-          <Input value={form.label} onChange={function (e) { setForm({ ...form, label: e.target.value }); }} placeholder="Period 8" required />
-        </Field>
-        <Field label="Starts">
-          <Input type="time" value={form.start_time} onChange={function (e) { setForm({ ...form, start_time: e.target.value }); }} required />
-        </Field>
-        <Field label="Ends">
-          <Input type="time" value={form.end_time} onChange={function (e) { setForm({ ...form, end_time: e.target.value }); }} required />
-        </Field>
-        <Button type="submit" icon={Plus} loading={busy}>Add period</Button>
-      </form>
-    </Card>
+  async function build(e) {
+    e.preventDefault();
+
+    const hasPeriods = periods && periods.length > 0;
+    if (hasPeriods && !window.confirm(
+      "This replaces all existing periods and breaks, and clears every class timetable built on them. Continue?"
+    )) {
+      return;
+    }
+
+    setBuilding(true);
+    try {
+      await api.post("/timetable/periods/generate", {
+        start_time: day.start_time,
+        class_minutes: Number(day.class_minutes),
+        count: Number(day.count),
+        breaks: breaks.map(function (b) {
+          return { after: Number(b.after), minutes: Number(b.minutes), label: b.label };
+        }),
+        replace: true,
+      });
+      load();
+      onChanged();
+    } catch (err) {
+      onError(errorText(err));
+    } finally {
+      setBuilding(false);
+    }
+  }
+
+  return (
+    <>
+      <Card
+        title="Set up the school day"
+        icon={Wand2}
+        description="Choose how long each class is and when the breaks fall. The periods are made for you."
+        className="mb-4"
+      >
+        <form onSubmit={build} className="space-y-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <Field label="Day starts">
+              <Input type="time" value={day.start_time} onChange={function (e) { setDay({ ...day, start_time: e.target.value }); }} required />
+            </Field>
+            <Field label="Class length (minutes)">
+              <Input type="number" min="5" max="180" value={day.class_minutes} onChange={function (e) { setDay({ ...day, class_minutes: e.target.value }); }} required />
+            </Field>
+            <Field label="Number of classes">
+              <Input type="number" min="1" max="15" value={day.count} onChange={function (e) { setDay({ ...day, count: e.target.value }); }} required />
+            </Field>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-ink mb-2">Breaks</p>
+            {breaks.length === 0 && <p className="text-xs text-slate-400 mb-2">No breaks. Classes will run back to back.</p>}
+            <div className="space-y-2">
+              {breaks.map(function (b, i) {
+                return (
+                  <div key={i} className="grid grid-cols-2 sm:grid-cols-[1fr_7rem_7rem_auto] gap-2 items-end">
+                    <Field label="Name">
+                      <Input value={b.label} onChange={function (e) { changeBreak(i, "label", e.target.value); }} placeholder="Break" />
+                    </Field>
+                    <Field label="After class no.">
+                      <Input type="number" min="1" value={b.after} onChange={function (e) { changeBreak(i, "after", e.target.value); }} required />
+                    </Field>
+                    <Field label="Minutes">
+                      <Input type="number" min="1" max="120" value={b.minutes} onChange={function (e) { changeBreak(i, "minutes", e.target.value); }} required />
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={function () { setBreaks(breaks.filter(function (_, j) { return j !== i; })); }}
+                      className="text-slate-400 hover:text-bad pb-3 justify-self-start"
+                      aria-label="Remove this break"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={function () { setBreaks([...breaks, { after: "", minutes: "15", label: "Break" }]); }}
+              className="text-sm text-teal font-semibold underline mt-2"
+            >
+              + Add another break
+            </button>
+          </div>
+
+          <Button type="submit" icon={Wand2} loading={building}>Build the school day</Button>
+        </form>
+      </Card>
+
+      <Card title="Periods and breaks" icon={Clock3} description="Shared by every class. Times cannot overlap." className="mb-4">
+        {!periods ? (
+          <Loading />
+        ) : periods.length === 0 ? (
+          <p className="text-sm text-slate-400 mb-4">Nothing yet. Set up the school day above, or add the first one below.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {periods.map(function (p) {
+              const isBreak = p.kind === "break";
+              return (
+                <span
+                  key={p.id}
+                  className={
+                    "inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm " +
+                    (isBreak ? "bg-amber-50 text-amber-700" : "bg-slate-100")
+                  }
+                >
+                  {isBreak && <Coffee size={13} />}
+                  {p.label} <span className="text-slate-400 text-xs">{p.start_time.slice(0, 5)}-{p.end_time.slice(0, 5)}</span>
+                  <button onClick={function () { remove(p.id); }} className="text-slate-400 hover:text-bad" aria-label={"Delete " + p.label}>
+                    <X size={14} />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        <form onSubmit={add} className="grid sm:grid-cols-5 gap-3 items-end">
+          <Field label="Type">
+            <Select value={form.kind} onChange={function (e) { setForm({ ...form, kind: e.target.value }); }}>
+              <option value="class">Class</option>
+              <option value="break">Break</option>
+            </Select>
+          </Field>
+          <Field label="Label">
+            <Input
+              value={form.label}
+              onChange={function (e) { setForm({ ...form, label: e.target.value }); }}
+              placeholder={form.kind === "break" ? "Break" : "Period 8"}
+              required={form.kind === "class"}
+            />
+          </Field>
+          <Field label="Starts">
+            <Input type="time" value={form.start_time} onChange={function (e) { setForm({ ...form, start_time: e.target.value }); }} required />
+          </Field>
+          <Field label="Ends">
+            <Input type="time" value={form.end_time} onChange={function (e) { setForm({ ...form, end_time: e.target.value }); }} required />
+          </Field>
+          <Button type="submit" icon={Plus} loading={busy}>Add {form.kind === "break" ? "break" : "period"}</Button>
+        </form>
+      </Card>
+    </>
   );
 }
