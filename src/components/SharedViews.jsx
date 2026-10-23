@@ -254,7 +254,7 @@ export function AssignmentsView({ studentId, canSubmit, isParent }) {
 
             {a.file && (
               <a href={fileUrl(a.file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-3 font-medium">
-                <Paperclip size={14} /> Open the teacher's file
+                <Paperclip size={14} /> Download the teacher's file
               </a>
             )}
 
@@ -262,7 +262,7 @@ export function AssignmentsView({ studentId, canSubmit, isParent }) {
               <p className="text-sm text-slate-600 mt-3">
                 You uploaded{" "}
                 <a href={fileUrl(a.submission_file)} target="_blank" rel="noreferrer" className="text-teal underline font-medium">
-                  your file
+                  download your file
                 </a>{" "}
                 on {new Date(a.submitted_at).toLocaleString()}.
               </p>

@@ -37,11 +37,17 @@ export function errorText(err) {
 }
 
 // The link to an uploaded file. New uploads are stored on Cloudinary and the
-// database holds the full https link, so it is used as it is. Older records
-// that only hold a file name fall back to the server's /uploads folder.
+// database holds the full https link. The fl_attachment flag makes Cloudinary
+// send the file as a download instead of showing it in the browser.
+// Older records that only hold a file name fall back to the server's
+// /uploads folder.
 export function fileUrl(file) {
   if (!file) return "";
-  if (/^https?:\/\//i.test(file)) return file;
+  if (/^https?:\/\//i.test(file)) {
+    return file.includes("/upload/") && !file.includes("fl_attachment")
+      ? file.replace("/upload/", "/upload/fl_attachment/")
+      : file;
+  }
   return api.defaults.baseURL.replace(/\/api\/?$/, "") + "/uploads/" + file;
 }
 

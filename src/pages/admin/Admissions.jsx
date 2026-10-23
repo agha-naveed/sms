@@ -192,7 +192,7 @@ function Review({ application, classes, onCancel, onApproved, onRejected }) {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-4 font-medium"
             >
-              <Paperclip size={14} /> Open the uploaded document
+              <Paperclip size={14} /> Download the uploaded document
             </a>
           ) : (
             <p className="text-sm text-slate-400 mt-4">No document was uploaded.</p>

@@ -125,7 +125,7 @@ export default function TeacherAssignments() {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-teal underline mt-3 font-medium"
                 >
-                  <Paperclip size={14} /> Your attached file
+                  <Paperclip size={14} /> Download your attached file
                 </a>
               )}
             </Card>
@@ -329,7 +329,7 @@ function Submissions({ assignment, onBack }) {
                         rel="noreferrer"
                         className="text-teal underline font-medium"
                       >
-                        Open
+                        Download
                       </a>
                     ) : (
                       "-"
