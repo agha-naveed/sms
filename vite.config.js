@@ -8,8 +8,8 @@ export default defineConfig({
     // Anything starting with /api or /uploads is sent to the Express server,
     // so the frontend can just call "/api/students".
     proxy: {
-      "/api": "http://localhost:5000",
-      "/uploads": "http://localhost:5000",
+      "/api": "https://sms-backend-production-4398.up.railway.app",
+      "/uploads": "https://sms-backend-production-4398.up.railway.app",
     },
   },
 });
