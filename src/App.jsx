@@ -44,7 +44,7 @@ export default function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <p className="p-8 text-slate-500">Loading...</p>;
+    return <p className="p-8 text-slate-500 w-full h-screen flex justify-center items-center">Loading...</p>;
   }
 
   return (
