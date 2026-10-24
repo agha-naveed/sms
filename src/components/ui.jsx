@@ -357,7 +357,7 @@ export function Message({ type = "info", children, onClose }) {
 
 export function Loading({ label = "Loading..." }) {
   return (
-    <div className="flex items-center gap-2.5 text-sm text-slate-500 py-8">
+    <div className="flex items-center w-full h-screen justify-center gap-2.5 text-sm text-slate-500 py-8">
       <Loader2 size={16} className="animate-spin" />
       {label}
     </div>
