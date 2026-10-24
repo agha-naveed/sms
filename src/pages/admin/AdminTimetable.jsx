@@ -100,7 +100,7 @@ export default function AdminTimetable() {
             onClick={function () { setShowPeriods(!showPeriods); }}
             className="text-sm text-teal font-semibold underline text-left sm:text-right"
           >
-            {showPeriods ? "Hide period settings" : "Manage periods"}
+            {showPeriods ? "Hide class, break & lunch settings" : "Class, break & lunch settings"}
           </button>
         </div>
       </Card>
@@ -332,7 +332,10 @@ function PeriodSettings({ onChanged, onError }) {
   const [busy, setBusy] = useState(false);
 
   const [day, setDay] = useState({ start_time: "08:00", class_minutes: "40", count: "7" });
-  const [breaks, setBreaks] = useState([{ after: "3", minutes: "20", label: "Break" }]);
+  const [breaks, setBreaks] = useState([
+    { after: "3", minutes: "20", label: "Break" },
+    { after: "5", minutes: "30", label: "Lunch" },
+  ]);
   const [building, setBuilding] = useState(false);
 
   function load() {
@@ -345,7 +348,13 @@ function PeriodSettings({ onChanged, onError }) {
     e.preventDefault();
     setBusy(true);
     try {
-      await api.post("/timetable/periods", form);
+      // Lunch is a break with the name "Lunch".
+      const isLunch = form.kind === "lunch";
+      await api.post("/timetable/periods", {
+        ...form,
+        kind: isLunch ? "break" : form.kind,
+        label: form.label.trim() || (isLunch ? "Lunch" : form.kind === "break" ? "Break" : ""),
+      });
       setForm({ kind: form.kind, label: "", start_time: "", end_time: "" });
       load();
       onChanged();
@@ -403,9 +412,9 @@ function PeriodSettings({ onChanged, onError }) {
   return (
     <>
       <Card
-        title="Set up the school day"
+        title="Set up classes, break & lunch"
         icon={Wand2}
-        description="Choose how long each class is and when the breaks fall. The periods are made for you."
+        description="Choose how long each class is, then add the break and lunch time. The periods are made for you."
         className="mb-4"
       >
         <form onSubmit={build} className="space-y-4">
@@ -422,13 +431,13 @@ function PeriodSettings({ onChanged, onError }) {
           </div>
 
           <div>
-            <p className="text-sm font-medium text-ink mb-2">Breaks</p>
-            {breaks.length === 0 && <p className="text-xs text-slate-400 mb-2">No breaks. Classes will run back to back.</p>}
+            <p className="text-sm font-medium text-ink mb-2">Break and lunch time</p>
+            {breaks.length === 0 && <p className="text-xs text-slate-400 mb-2">No break or lunch. Classes will run back to back.</p>}
             <div className="space-y-2">
               {breaks.map(function (b, i) {
                 return (
                   <div key={i} className="grid grid-cols-2 sm:grid-cols-[1fr_7rem_7rem_auto] gap-2 items-end">
-                    <Field label="Name">
+                    <Field label="Name (Break, Lunch...)">
                       <Input value={b.label} onChange={function (e) { changeBreak(i, "label", e.target.value); }} placeholder="Break" />
                     </Field>
                     <Field label="After class no.">
@@ -441,7 +450,7 @@ function PeriodSettings({ onChanged, onError }) {
                       type="button"
                       onClick={function () { setBreaks(breaks.filter(function (_, j) { return j !== i; })); }}
                       className="text-slate-400 hover:text-bad pb-3 justify-self-start"
-                      aria-label="Remove this break"
+                      aria-label="Remove this break or lunch"
                     >
                       <X size={16} />
                     </button>
@@ -454,7 +463,7 @@ function PeriodSettings({ onChanged, onError }) {
               onClick={function () { setBreaks([...breaks, { after: "", minutes: "15", label: "Break" }]); }}
               className="text-sm text-teal font-semibold underline mt-2"
             >
-              + Add another break
+              + Add another break / lunch
             </button>
           </div>
 
@@ -462,11 +471,11 @@ function PeriodSettings({ onChanged, onError }) {
         </form>
       </Card>
 
-      <Card title="Periods and breaks" icon={Clock3} description="Shared by every class. Times cannot overlap." className="mb-4">
+      <Card title="Classes, break and lunch" icon={Clock3} description="Shared by every class. Times cannot overlap." className="mb-4">
         {!periods ? (
           <Loading />
         ) : periods.length === 0 ? (
-          <p className="text-sm text-slate-400 mb-4">Nothing yet. Set up the school day above, or add the first one below.</p>
+          <p className="text-sm text-slate-400 mb-4">Nothing yet. Set up the classes above, or add the first one below.</p>
         ) : (
           <div className="flex flex-wrap gap-2 mb-4">
             {periods.map(function (p) {
@@ -495,13 +504,14 @@ function PeriodSettings({ onChanged, onError }) {
             <Select value={form.kind} onChange={function (e) { setForm({ ...form, kind: e.target.value }); }}>
               <option value="class">Class</option>
               <option value="break">Break</option>
+              <option value="lunch">Lunch</option>
             </Select>
           </Field>
           <Field label="Label">
             <Input
               value={form.label}
               onChange={function (e) { setForm({ ...form, label: e.target.value }); }}
-              placeholder={form.kind === "break" ? "Break" : "Period 8"}
+              placeholder={form.kind === "lunch" ? "Lunch" : form.kind === "break" ? "Break" : "Period 8"}
               required={form.kind === "class"}
             />
           </Field>
@@ -511,7 +521,7 @@ function PeriodSettings({ onChanged, onError }) {
           <Field label="Ends">
             <Input type="time" value={form.end_time} onChange={function (e) { setForm({ ...form, end_time: e.target.value }); }} required />
           </Field>
-          <Button type="submit" icon={Plus} loading={busy}>Add {form.kind === "break" ? "break" : "period"}</Button>
+          <Button type="submit" icon={Plus} loading={busy}>Add {form.kind === "lunch" ? "lunch" : form.kind === "break" ? "break" : "class"}</Button>
         </form>
       </Card>
     </>
