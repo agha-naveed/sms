@@ -70,6 +70,24 @@ export async function downloadFile(file) {
   }
 }
 
+// Saves any file the server builds (Excel templates and so on). Same idea as
+// downloadPdf below: the login travels with the request.
+export async function downloadApiFile(path, params, filename) {
+  try {
+    const res = await api.get(path, { params: params || {}, responseType: "blob" });
+    const blobUrl = window.URL.createObjectURL(res.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    window.alert("Could not download the file.");
+  }
+}
+
 // Downloads a PDF the server builds (e.g. a timetable). The request carries
 // the login, so the server decides who may download what. When it refuses,
 // the answer arrives as a blob, so the message is read out of it.

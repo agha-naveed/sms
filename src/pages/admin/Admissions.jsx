@@ -204,7 +204,7 @@ function Review({ application, classes, onCancel, onApproved, onRejected }) {
           <Card title="Approve and place the student">
             <div className="space-y-4">
               <Field label="Class" required>
-                <Select value={classId} disabled onChange={function (e) { setClassId(e.target.value); }}>
+                <Select value={classId} onChange={function (e) { setClassId(e.target.value); }}>
                   <option value="">Choose a class</option>
                   {classes.map(function (c) { return <option key={c.id} value={c.id}>{c.name}</option>; })}
                 </Select>

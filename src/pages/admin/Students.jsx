@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { UserPlus, GraduationCap, KeyRound, Search } from "lucide-react";
-import api, { errorText } from "../../api";
+import { UserPlus, GraduationCap, KeyRound, Search, FileSpreadsheet, Download, Upload } from "lucide-react";
+import api, { errorText, downloadApiFile } from "../../api";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
   PhoneInput, CnicInput, Confirm, RevealModal,
@@ -15,6 +15,7 @@ export default function Students() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [newLogins, setNewLogins] = useState(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -79,9 +80,14 @@ export default function Students() {
       title="Students"
       subtitle={list.length + " students shown. A student can sign in with the registration number or the email."}
       action={
-        <Button icon={UserPlus} onClick={function () { setAdding(!adding); }}>
-          {adding ? "Close form" : "Add a student"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="plain" icon={FileSpreadsheet} onClick={function () { setImporting(!importing); setAdding(false); }}>
+            {importing ? "Close import" : "Import from Excel"}
+          </Button>
+          <Button icon={UserPlus} onClick={function () { setAdding(!adding); setImporting(false); }}>
+            {adding ? "Close form" : "Add a student"}
+          </Button>
+        </div>
       }
     >
       <Message type="error" onClose={function () { setError(""); }}>{error}</Message>
@@ -110,6 +116,13 @@ export default function Students() {
           <Button type="submit" variant="plain" icon={Search}>Search</Button>
         </form>
       </Card>
+
+      {importing && (
+        <ImportStudents
+          onClose={function () { setImporting(false); }}
+          onImported={function () { load(); }}
+        />
+      )}
 
       {adding && (
         <AddStudent
@@ -275,7 +288,7 @@ function AddStudent({ classes, onAdded, onError }) {
                 <Input value={form.parent_name} onChange={function (e) { set("parent_name", e.target.value); }} />
               </Field>
 
-              <Field label="Email" hint="This becomes the parent's login.">
+              <Field label="Email" hint="Optional. This becomes the parent's login. If empty, a school email is made.">
                 <Input type="email" value={form.parent_email} onChange={function (e) { set("parent_email", e.target.value); }} />
               </Field>
 
@@ -283,7 +296,7 @@ function AddStudent({ classes, onAdded, onError }) {
                 <PhoneInput value={form.parent_phone} onChange={function (v) { set("parent_phone", v); }} />
               </Field>
 
-              <Field label="CNIC">
+              <Field label="CNIC" hint="The same CNIC links to the parent who is already in the system.">
                 <CnicInput value={form.parent_cnic} onChange={function (v) { set("parent_cnic", v); }} />
               </Field>
             </div>
@@ -406,5 +419,124 @@ function SectionLabel({ n, title }) {
       <span className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center">{n}</span>
       <h3 className="font-semibold text-ink">{title}</h3>
     </div>
+  );
+}
+
+
+// Adds many existing students at once from an Excel file.
+function ImportStudents({ onClose, onImported }) {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState(null);   // { message, errors, more }
+  const [result, setResult] = useState(null);
+
+  async function upload(e) {
+    e.preventDefault();
+    if (!file) return;
+
+    setBusy(true);
+    setProblem(null);
+    setResult(null);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await api.post("/student-import", body);
+      setResult(res.data);
+      setFile(null);
+      onImported();
+    } catch (err) {
+      const data = err.response && err.response.data;
+      setProblem({ message: errorText(err), errors: (data && data.errors) || [], more: (data && data.more) || 0 });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // The starting logins of everyone just added, to print or hand out.
+  function downloadLogins() {
+    const cell = function (v) { return '"' + String(v === undefined || v === null ? "" : v).replace(/"/g, '""') + '"'; };
+    const lines = [["Name", "Class", "Section", "Registration no", "Login email", "Password", "Parent", "Parent email", "Parent password"]];
+
+    const newParents = {};
+    result.parent_logins.forEach(function (p) { newParents[p.email.toLowerCase()] = p.password; });
+
+    result.students.forEach(function (s) {
+      lines.push([
+        s.name, s.class_name, s.section_name, s.admission_no, s.email, s.password,
+        s.parent_name, s.parent_email, newParents[(s.parent_email || "").toLowerCase()] || (s.parent_email ? "(existing account)" : ""),
+      ]);
+    });
+
+    const csv = "\uFEFF" + lines.map(function (l) { return l.map(cell).join(","); }).join("\r\n");
+    const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "new-student-logins.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  return (
+    <Card title="Import students from Excel" icon={FileSpreadsheet} description="For students who already attend the school. Fill in one row per student and upload the file." className="mb-4">
+      <ol className="text-sm text-slate-600 list-decimal pl-5 space-y-1 mb-4">
+        <li>Download the Excel template and fill it in. Only Name, Class and Section are required.</li>
+        <li>Class and Section must match the ones already created (the template lists them).</li>
+        <li>Registration numbers and logins are made automatically unless you fill them in.</li>
+        <li>Parents are matched by Parent CNIC or Parent Email, so brothers and sisters share one parent. A parent with no email gets a school email such as parent-2026-0007@school.com.</li>
+        <li>If any row has a problem, nothing is saved. Fix the rows shown and upload again.</li>
+      </ol>
+
+      <div className="mb-4">
+        <Button variant="plain" icon={Download} onClick={function () { downloadApiFile("/student-import/template", {}, "students-import-template.xlsx"); }}>
+          Download Excel template
+        </Button>
+      </div>
+
+      {!result && (
+        <form onSubmit={upload} className="flex flex-wrap items-end gap-3">
+          <Field label="Filled-in file (.xlsx or .csv)">
+            <input
+              type="file"
+              accept=".xlsx,.csv"
+              onChange={function (e) { setFile(e.target.files[0] || null); setProblem(null); }}
+              className="block text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-semibold"
+            />
+          </Field>
+          <Button type="submit" icon={Upload} loading={busy} disabled={!file}>Upload and add students</Button>
+        </form>
+      )}
+
+      {problem && (
+        <div className="mt-4 rounded-xl border border-bad/30 bg-bad/5 p-4">
+          <p className="text-sm font-semibold text-bad">{problem.message}</p>
+          {problem.errors.length > 0 && (
+            <ul className="mt-2 text-sm text-slate-700 space-y-1 max-h-64 overflow-auto">
+              {problem.errors.map(function (er, i) {
+                return <li key={i}><strong>Row {er.row}:</strong> {er.message}</li>;
+              })}
+              {problem.more > 0 && <li className="text-slate-500">...and {problem.more} more.</li>}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-2 rounded-xl border border-good/30 bg-good/5 p-4">
+          <p className="text-sm font-semibold text-good">{result.message}</p>
+          <p className="text-sm text-slate-600 mt-1">
+            {result.parent_logins.length} new parent account{result.parent_logins.length === 1 ? "" : "s"} created.
+            Everyone starts with the password given in the login list.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Button icon={Download} onClick={downloadLogins}>Download login list (CSV)</Button>
+            <Button variant="plain" onClick={function () { setResult(null); }}>Import another file</Button>
+            <Button variant="plain" onClick={onClose}>Done</Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
