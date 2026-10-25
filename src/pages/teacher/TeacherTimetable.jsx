@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CalendarClock } from "lucide-react";
-import api, { errorText } from "../../api";
-import { Page, Card, Message, Loading, Empty } from "../../components/ui.jsx";
+import { CalendarClock, Download } from "lucide-react";
+import api, { errorText, downloadPdf } from "../../api";
+import { Page, Card, Button, Message, Loading, Empty } from "../../components/ui.jsx";
 import { TimetableGrid } from "../../components/TimetableGrid.jsx";
 
 export default function TeacherTimetable() {
@@ -19,7 +19,16 @@ export default function TeacherTimetable() {
 
   return (
     <Page title="My timetable" subtitle="Every period you teach, across every class. Only published classes appear here.">
-      <Card icon={CalendarClock}>
+      <Card
+        icon={CalendarClock}
+        action={
+          hasAny && (
+            <Button size="sm" variant="plain" icon={Download} onClick={function () { downloadPdf("/timetable/pdf/my", {}, "my-timetable.pdf"); }}>
+              Download PDF
+            </Button>
+          )
+        }
+      >
         {!hasAny ? (
           <Empty>
             Nothing to show yet. Either you haven't been placed in a timetable, or the

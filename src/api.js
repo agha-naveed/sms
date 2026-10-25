@@ -70,4 +70,31 @@ export async function downloadFile(file) {
   }
 }
 
+// Downloads a PDF the server builds (e.g. a timetable). The request carries
+// the login, so the server decides who may download what. When it refuses,
+// the answer arrives as a blob, so the message is read out of it.
+export async function downloadPdf(path, params, filename) {
+  try {
+    const res = await api.get(path, { params: params || {}, responseType: "blob" });
+
+    const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename || "download.pdf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    let message = "Could not download the PDF.";
+    try {
+      const text = await err.response.data.text();
+      message = JSON.parse(text).message || message;
+    } catch (e) {
+      // keep the default message
+    }
+    window.alert(message);
+  }
+}
+
 export default api;

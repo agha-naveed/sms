@@ -2,8 +2,8 @@
 // teachers, students and parents can see it. Nothing is visible to anyone
 // else until Publish is pressed, so half-finished work is never seen.
 import { useEffect, useState } from "react";
-import { CalendarClock, Plus, X, Eye, EyeOff, Clock3, Coffee, Wand2 } from "lucide-react";
-import api, { errorText } from "../../api";
+import { CalendarClock, Plus, X, Eye, EyeOff, Clock3, Coffee, Wand2, Download } from "lucide-react";
+import api, { errorText, downloadPdf } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty,
 } from "../../components/ui.jsx";
@@ -102,6 +102,37 @@ export default function AdminTimetable() {
           >
             {showPeriods ? "Hide class, break & lunch settings" : "Class, break & lunch settings"}
           </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
+          <Button
+            size="sm"
+            variant="plain"
+            icon={Download}
+            disabled={!sectionId}
+            onClick={function () {
+              downloadPdf("/timetable/pdf/class/" + classId + "/" + sectionId, {}, "timetable.pdf");
+            }}
+          >
+            Download this section (PDF)
+          </Button>
+          <Button
+            size="sm"
+            variant="plain"
+            icon={Download}
+            disabled={!classId}
+            onClick={function () { downloadPdf("/timetable/pdf/all", { class_id: classId }, "timetables-class.pdf"); }}
+          >
+            Download whole class (PDF)
+          </Button>
+          <Button
+            size="sm"
+            variant="plain"
+            icon={Download}
+            onClick={function () { downloadPdf("/timetable/pdf/all", {}, "timetables-all-classes.pdf"); }}
+          >
+            Download all classes (PDF)
+          </Button>
         </div>
       </Card>
 

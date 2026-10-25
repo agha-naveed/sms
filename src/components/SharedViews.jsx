@@ -3,8 +3,8 @@
 // The parent passes a child's id; the student passes their own id.
 // Only difference: a student can upload assignment work, a parent cannot.
 import { useEffect, useState } from "react";
-import { Printer, Trophy, Wallet, FileText, UploadCloud, Paperclip, Clock, CalendarClock } from "lucide-react";
-import api, { errorText, downloadFile } from "../api";
+import { Printer, Trophy, Wallet, FileText, UploadCloud, Paperclip, Clock, CalendarClock, Download } from "lucide-react";
+import api, { errorText, downloadFile, downloadPdf } from "../api";
 import { FeeSlip, ReportCard } from "./PrintDocs.jsx";
 import {
   Card, Table, Pill, Empty, Loading, Message, Button, money,
@@ -45,7 +45,26 @@ export function ClassTimetableView({ classId, sectionId, studentId, isParent }) 
   if (!grid) return <Loading />;
 
   return (
-    <Card icon={CalendarClock} title={grid.class_name + " - Section " + grid.section_name}>
+    <Card
+      icon={CalendarClock}
+      title={grid.class_name + " - Section " + grid.section_name}
+      action={
+        <Button
+          size="sm"
+          variant="plain"
+          icon={Download}
+          onClick={function () {
+            downloadPdf(
+              "/timetable/pdf/class/" + classId + "/" + sectionId,
+              isParent ? { student_id: studentId } : {},
+              "timetable-" + grid.class_name + "-" + grid.section_name + ".pdf"
+            );
+          }}
+        >
+          Download PDF
+        </Button>
+      }
+    >
       <TimetableGrid
         periods={grid.periods}
         days={grid.days}
