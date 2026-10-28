@@ -79,9 +79,52 @@ export function FeeSlip({ slip, onBack }) {
   );
 }
 
-function Voucher({ slip, copy }) {
+// A fee slip counts as paid once nothing is left to pay.
+function isFullyPaid(slip) {
+  return slip.status === "paid" || (slip.total > 0 && slip.balance <= 0);
+}
+
+// The day the last payment was received, when the slip carries its payments.
+function paidOnDate(slip) {
+  if (!slip.payments || slip.payments.length === 0) return "";
+  const last = slip.payments[slip.payments.length - 1];
+  return last.paid_on ? new Date(last.paid_on).toLocaleDateString() : "";
+}
+
+// The round-cornered "PAID" stamp pressed over a settled voucher.
+function PaidStamp({ date }) {
   return (
-    <section className="bg-white border border-slate-300 rounded-lg p-4 print:rounded-none print:break-inside-avoid print:border-dashed print:mb-2">
+    <div
+      className="absolute pointer-events-none select-none"
+      style={{ right: "9%", top: "34%", transform: "rotate(-14deg)" }}
+      aria-label="Paid"
+    >
+      <div
+        style={{
+          border: "3px double #15803d",
+          color: "#15803d",
+          borderRadius: "10px",
+          padding: "4px 18px",
+          textAlign: "center",
+          opacity: 0.88,
+          background: "rgba(255,255,255,0.35)",
+        }}
+      >
+        <div style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "0.22em", lineHeight: 1.05, paddingLeft: "0.22em" }}>
+          PAID
+        </div>
+        {date && <div style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.05em" }}>{date}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Voucher({ slip, copy }) {
+  const paid = isFullyPaid(slip);
+
+  return (
+    <section className="relative overflow-hidden bg-white border border-slate-300 rounded-lg p-4 print:rounded-none print:break-inside-avoid print:border-dashed print:mb-2">
+      {paid && <PaidStamp date={paidOnDate(slip)} />}
       {/* header */}
       <div className="flex justify-between items-start border-b-2 border-ink pb-2">
         <div className="flex items-center gap-2">
@@ -97,7 +140,8 @@ function Voucher({ slip, copy }) {
           <p className="text-[10px] uppercase tracking-wide text-slate-500">{copy.name}</p>
           <p className="font-semibold text-ink text-sm">{slip.slip_no}</p>
           <p className="text-[10px] text-slate-500">{slip.month_name}</p>
-          {slip.is_overdue && <p className="text-[10px] text-bad font-medium">Overdue</p>}
+          {slip.is_overdue && !paid && <p className="text-[10px] text-bad font-medium">Overdue</p>}
+          {paid && <p className="text-[10px] text-good font-semibold">Paid</p>}
         </div>
       </div>
 
