@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { Printer, Trophy, Wallet, FileText, UploadCloud, Paperclip, Clock, CalendarClock, Download } from "lucide-react";
 import api, { errorText, downloadFile, downloadPdf } from "../api";
-import { FeeSlip, ReportCard } from "./PrintDocs.jsx";
+import { SlipModal, ReportCard } from "./PrintDocs.jsx";
 import {
   Card, Table, Pill, Empty, Loading, Message, Button, money,
 } from "./ui.jsx";
@@ -155,10 +155,6 @@ export function FeesView({ studentId, isParent }) {
   if (error) return <Message type="error">{error}</Message>;
   if (!slips) return <Loading />;
 
-  if (open) {
-    return <FeeSlip slip={open} onBack={function () { setOpen(null); }} />;
-  }
-
   const due = slips.reduce(function (sum, s) { return sum + s.balance; }, 0);
 
   return (
@@ -194,6 +190,7 @@ export function FeesView({ studentId, isParent }) {
           </Table>
         )}
       </Card>
+      {open && <SlipModal slip={open} onClose={function () { setOpen(null); }} />}
     </div>
   );
 }

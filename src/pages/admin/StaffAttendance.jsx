@@ -1,8 +1,8 @@
-// The admin marks every teacher present, absent or on leave for the day,
+// The admin marks every teacher present, late, absent or on leave for the day,
 // and can look back over any period. There is no time window here —
 // unlike student attendance, this is the admin's own record to keep.
 import { useEffect, useState } from "react";
-import { Check, X, CalendarOff, Users, Percent, CheckCircle2, XCircle } from "lucide-react";
+import { Check, X, CalendarOff, Users, Percent, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Table, Button, Select, Input, Field, Message, Loading, Empty, Tabs, Stat,
@@ -82,7 +82,7 @@ function MarkStaff() {
       <Message type="error" onClose={function () { setError(""); }}>{error}</Message>
       {result && (
         <Message type="success" onClose={function () { setResult(null); }}>
-          Saved for {result.total} teachers. {result.absent} absent.
+          Saved for {result.total} teachers. {result.late || 0} late, {result.absent} absent.
         </Message>
       )}
 
@@ -116,6 +116,7 @@ function MarkStaff() {
                   <p className="font-medium text-ink">{t.name}</p>
                   <div className="flex gap-1.5">
                     <Choice label="Present" icon={Check} active={marks[t.id] === "present"} color="good" onClick={function () { setStatus(t.id, "present"); }} />
+                    <Choice label="Late" icon={Clock3} active={marks[t.id] === "late"} color="warn" onClick={function () { setStatus(t.id, "late"); }} />
                     <Choice label="Absent" icon={X} active={marks[t.id] === "absent"} color="bad" onClick={function () { setStatus(t.id, "absent"); }} />
                     <Choice label="Leave" icon={CalendarOff} active={marks[t.id] === "leave"} color="slate" onClick={function () { setStatus(t.id, "leave"); }} />
                   </div>
@@ -142,6 +143,7 @@ function Choice({ label, icon: Icon, active, color, onClick }) {
   const on = {
     good: "bg-good text-white border-good",
     bad: "bg-bad text-white border-bad",
+    warn: "bg-warn text-white border-warn",
     slate: "bg-slate-500 text-white border-slate-500",
   };
   return (
@@ -201,9 +203,10 @@ function StaffReport() {
         <>
           <p className="text-sm text-slate-500 mb-3">{data.label}</p>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
             <Stat icon={Users} label="Teachers" value={data.summary.teachers} />
             <Stat icon={CheckCircle2} label="Present" value={data.summary.present} tone="good" />
+            <Stat icon={Clock3} label="Late" value={data.summary.late} tone="warn" />
             <Stat icon={XCircle} label="Absent" value={data.summary.absent} tone="bad" />
             <Stat icon={Percent} label="Attendance" value={data.summary.percentage + "%"} tone={data.summary.percentage >= 90 ? "good" : "warn"} />
           </div>
@@ -212,12 +215,13 @@ function StaffReport() {
             <Card><Empty>No staff attendance was marked in this period.</Empty></Card>
           ) : (
             <Card title="Teacher by teacher">
-              <Table head={["Teacher", "Present", "Absent", "Leave", "Attendance"]}>
+              <Table head={["Teacher", "Present", "Late", "Absent", "Leave", "Attendance"]}>
                 {data.by_teacher.map(function (t) {
                   return (
                     <tr key={t.teacher_id}>
                       <td className="py-2.5 pr-4 font-medium">{t.name}</td>
                       <td className="py-2.5 pr-4 text-good">{t.present}</td>
+                      <td className="py-2.5 pr-4 text-warn">{t.late}</td>
                       <td className="py-2.5 pr-4 text-bad">{t.absent}</td>
                       <td className="py-2.5 pr-4 text-slate-500">{t.on_leave}</td>
                       <td className="py-2.5 pr-4">{t.marked === 0 ? <span className="text-slate-400">Not marked</span> : t.percentage + "%"}</td>

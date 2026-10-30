@@ -1,11 +1,11 @@
 // Add teachers and decide which class + section each one can work with.
 // Those assignments are what let a teacher mark attendance at all.
 import { useEffect, useState } from "react";
-import { UserPlus, Users, X, Star, KeyRound } from "lucide-react";
+import { UserPlus, Users, X, Star } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty, PhoneInput,
-  Chip, Confirm, RevealModal,
+  Chip, Confirm,
 } from "../../components/ui.jsx";
 
 export default function Teachers() {
@@ -14,8 +14,6 @@ export default function Teachers() {
   const [showForm, setShowForm] = useState(false);
   const [assigning, setAssigning] = useState(null);
   const [removing, setRemoving] = useState(null); // teacher pending delete confirmation
-  const [resetting, setResetting] = useState(null); // teacher pending password reset confirmation
-  const [newPassword, setNewPassword] = useState(null); // { name, password } to reveal once
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -37,19 +35,6 @@ export default function Teachers() {
       setDone("Teacher removed.");
       setRemoving(null);
       load();
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmReset() {
-    setBusy(true);
-    try {
-      const res = await api.put("/teachers/" + resetting.id + "/reset-password");
-      setNewPassword({ name: resetting.name, password: res.data.password });
-      setResetting(null);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -116,7 +101,6 @@ export default function Teachers() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="plain" onClick={function () { setAssigning(t); }}>Assign classes</Button>
-                    <Button size="sm" variant="plain" icon={KeyRound} onClick={function () { setResetting(t); }}>Reset password</Button>
                     <Button size="sm" variant="danger" onClick={function () { setRemoving(t); }}>Remove</Button>
                   </div>
                 </div>
@@ -159,23 +143,6 @@ export default function Teachers() {
         onCancel={function () { setRemoving(null); }}
       />
 
-      <Confirm
-        open={!!resetting}
-        title={resetting ? "Reset " + resetting.name + "'s password?" : ""}
-        body="A new temporary password will be generated. Their old password will stop working."
-        confirmLabel="Reset password"
-        busy={busy}
-        onConfirm={confirmReset}
-        onCancel={function () { setResetting(null); }}
-      />
-
-      {newPassword && (
-        <RevealModal
-          title={newPassword.name + "'s new password"}
-          rows={[{ label: "Password", value: newPassword.password }]}
-          onClose={function () { setNewPassword(null); }}
-        />
-      )}
     </Page>
   );
 }

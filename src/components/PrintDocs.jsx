@@ -5,6 +5,9 @@
 //
 // Both print through the browser. Press the button, then choose "Save as PDF"
 // in the print window to keep a file.
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { SCHOOL, Crest } from "../school.jsx";
 import { Button, money } from "./ui.jsx";
 
@@ -76,6 +79,60 @@ export function FeeSlip({ slip, onBack }) {
         })}
       </div>
     </div>
+  );
+}
+
+// The fee slip in a pop-up, so the page behind it stays where it was.
+// Closes with the X, the Escape key, or a click outside. When printing, only
+// the slip is printed: the page behind it is hidden.
+export function SlipModal({ slip, onClose }) {
+  useEffect(function () {
+    function onKey(e) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", onKey);
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return function () {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = oldOverflow;
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="slip-portal fixed inset-0 z-50 overflow-y-auto bg-ink/50 p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={function (e) { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <style>{`
+        @media print {
+          body > *:not(.slip-portal) { display: none !important; }
+          .slip-portal { position: static !important; overflow: visible !important; background: none !important; padding: 0 !important; }
+          .slip-card { box-shadow: none !important; max-width: none !important; border: 0 !important; background: #fff !important; padding: 0 !important; margin: 0 !important; }
+        }
+      `}</style>
+
+      <div className="slip-card mx-auto w-full max-w-3xl bg-slate-50 rounded-2xl shadow-popover p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3 no-print">
+          <h2 className="font-semibold text-ink">Fee slip {slip.slip_no ? "· " + slip.slip_no : ""}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <FeeSlip slip={slip} />
+
+        <div className="mt-4 text-right no-print">
+          <Button variant="plain" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 

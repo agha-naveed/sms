@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, CheckCircle2, XCircle, CalendarOff, Percent } from "lucide-react";
+import { Users, CheckCircle2, XCircle, CalendarOff, Percent, Clock3 } from "lucide-react";
 import api, { errorText } from "../../api";
 import { Page, Card, Table, Select, Input, Field, Stat, Message, Loading, Empty } from "../../components/ui.jsx";
 
@@ -48,8 +48,9 @@ export default function TeacherMyAttendance() {
         <>
           <p className="text-sm text-slate-500 mb-3">{data.label}</p>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
             <Stat icon={CheckCircle2} label="Present" value={data.summary.present} tone="good" />
+            <Stat icon={Clock3} label="Late" value={data.summary.late} tone="warn" />
             <Stat icon={XCircle} label="Absent" value={data.summary.absent} tone="bad" />
             <Stat icon={CalendarOff} label="Leave" value={data.summary.on_leave} />
             <Stat icon={Percent} label="Attendance" value={data.summary.percentage + "%"} tone={data.summary.percentage >= 90 ? "good" : "warn"} />
@@ -58,11 +59,11 @@ export default function TeacherMyAttendance() {
           <Card title="Day by day">
             <Table head={["Date", "Status"]}>
               {data.by_day.map(function (d) {
-                const status = d.present > 0 ? "Present" : d.absent > 0 ? "Absent" : "Leave";
+                const status = d.present > 0 ? "Present" : d.late > 0 ? "Late" : d.absent > 0 ? "Absent" : "Leave";
                 return (
                   <tr key={d.date}>
                     <td className="py-2.5 pr-4">{new Date(d.date).toLocaleDateString()}</td>
-                    <td className={"py-2.5 pr-4 " + (status === "Present" ? "text-good" : status === "Absent" ? "text-bad" : "text-slate-500")}>
+                    <td className={"py-2.5 pr-4 " + (status === "Present" ? "text-good" : status === "Late" ? "text-warn" : status === "Absent" ? "text-bad" : "text-slate-500")}>
                       {status}
                     </td>
                   </tr>

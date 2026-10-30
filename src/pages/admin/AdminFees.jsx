@@ -6,7 +6,7 @@ import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
   Stat, money, MONTHS,
 } from "../../components/ui.jsx";
-import { FeeSlip } from "../../components/PrintDocs.jsx";
+import { SlipModal } from "../../components/PrintDocs.jsx";
 
 export default function AdminFees() {
   const now = new Date();
@@ -15,7 +15,7 @@ export default function AdminFees() {
   const [summary, setSummary] = useState(null);
   const [classes, setClasses] = useState([]);
   const [open, setOpen] = useState(null);
-  const [paying, setPaying] = useState(null);
+  const [paying, setPaying] = useState(null);   // id of the slip being paid, right in its row
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
@@ -59,14 +59,6 @@ export default function AdminFees() {
 
   function openSlip(id) {
     api.get("/fees/slip/" + id).then(function (res) { setOpen(res.data); }).catch(function (err) { setError(errorText(err)); });
-  }
-
-  if (open) {
-    return (
-      <Page title="Fee slip" back={{ label: "Back to fees", onClick: function () { setOpen(null); } }}>
-        <FeeSlip slip={open} />
-      </Page>
-    );
   }
 
   if (!slips) return <Loading />;
@@ -158,14 +150,6 @@ export default function AdminFees() {
 
       <CombinedPayment onPaid={function (msg) { setDone(msg); load(); }} onError={setError} />
 
-      {paying && (
-        <RecordPayment
-          slip={paying}
-          onClose={function () { setPaying(null); }}
-          onSaved={function () { setPaying(null); setDone("Payment recorded."); load(); }}
-        />
-      )}
-
       <Card>
         {slips.length === 0 ? (
           <Empty icon={Receipt}>No fee slips match these filters. Generate slips for a month above.</Empty>
@@ -185,10 +169,20 @@ export default function AdminFees() {
                   <td className={"py-2.5 pr-4 " + (s.balance > 0 ? "text-bad" : "text-good")}>{money(s.balance)}</td>
                   <td className="py-2.5 pr-4"><Pill status={s.is_overdue && s.balance > 0 ? "overdue" : s.status} /></td>
                   <td className="py-2.5 pr-4 whitespace-nowrap">
-                    {s.balance > 0 && (
-                      <Button size="sm" variant="good" onClick={function () { setPaying(s); }}>Take payment</Button>
+                    {paying === s.id ? (
+                      <InlinePayment
+                        slip={s}
+                        onClose={function () { setPaying(null); }}
+                        onSaved={function () { setPaying(null); setDone("Payment recorded for " + s.student_name + "."); load(); }}
+                      />
+                    ) : (
+                      <>
+                        {s.balance > 0 && (
+                          <Button size="sm" variant="good" onClick={function () { setPaying(s.id); }}>Take payment</Button>
+                        )}
+                        <Button size="sm" variant="plain" className={s.balance > 0 ? "ml-2" : ""} onClick={function () { openSlip(s.id); }}>Slip</Button>
+                      </>
                     )}
-                    <Button size="sm" variant="plain" className="ml-2" onClick={function () { openSlip(s.id); }}>Slip</Button>
                   </td>
                 </tr>
               );
@@ -196,6 +190,8 @@ export default function AdminFees() {
           </Table>
         )}
       </Card>
+
+      {open && <SlipModal slip={open} onClose={function () { setOpen(null); }} />}
     </Page>
   );
 }
@@ -319,49 +315,55 @@ function CombinedPayment({ onPaid, onError }) {
   );
 }
 
-function RecordPayment({ slip, onClose, onSaved }) {
+// Taking a payment happens right inside the student's row: the amount and a
+// note appear where the buttons were, and once it is saved the row goes back
+// to normal.
+function InlinePayment({ slip, onClose, onSaved }) {
   const [amount, setAmount] = useState(slip.balance);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function save() {
+  async function save(e) {
+    e.preventDefault();
+    setError("");
+
+    const value = Number(amount);
+    if (!value || value <= 0) { setError("Enter the amount received."); return; }
+    if (value > slip.balance) { setError("That is more than the " + money(slip.balance) + " still owed."); return; }
+
     setBusy(true);
     try {
-      await api.post("/fees/" + slip.id + "/pay", { amount: Number(amount), note: note });
+      await api.post("/fees/" + slip.id + "/pay", { amount: value, note: note });
       onSaved();
     } catch (err) {
       setError(errorText(err));
-    } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Card title={"Payment from " + slip.student_name} className="mb-4">
-      <Message type="error">{error}</Message>
-
-      <p className="text-sm text-slate-600 mb-3">
-        {slip.month_label} · balance {money(slip.balance)}
-        {slip.late_fee > 0 && (
-          <span className="text-bad"> (includes {money(slip.late_fee)} late fee for {slip.days_overdue} day{slip.days_overdue === 1 ? "" : "s"})</span>
-        )}
-      </p>
-
-      <div className="grid sm:grid-cols-3 gap-3 items-end">
-        <Field label="Amount received" hint="A smaller amount is fine. The slip becomes part paid.">
-          <Input type="number" value={amount} onChange={function (e) { setAmount(e.target.value); }} max={slip.balance} />
-        </Field>
-
-        <Field label="Note">
-          <Input value={note} onChange={function (e) { setNote(e.target.value); }} placeholder="Cash at office" />
-        </Field>
-
-        <div className="flex gap-2">
-          <Button variant="good" onClick={save} loading={busy}>Record payment</Button>
-          <Button variant="plain" onClick={onClose}>Cancel</Button>
-        </div>
-      </div>
-    </Card>
+    <form onSubmit={save} className="flex flex-wrap items-center gap-2">
+      <Input
+        type="number"
+        min="1"
+        max={slip.balance}
+        autoFocus
+        value={amount}
+        onChange={function (e) { setAmount(e.target.value); }}
+        className="!w-28 !py-1.5"
+        aria-label="Amount received"
+      />
+      <Input
+        value={note}
+        onChange={function (e) { setNote(e.target.value); }}
+        placeholder="Note (optional)"
+        className="!w-40 !py-1.5"
+        aria-label="Note"
+      />
+      <Button type="submit" size="sm" variant="good" loading={busy}>Save</Button>
+      <Button type="button" size="sm" variant="plain" onClick={onClose} disabled={busy}>Cancel</Button>
+      {error && <span className="basis-full text-xs text-bad">{error}</span>}
+    </form>
   );
 }
