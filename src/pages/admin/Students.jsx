@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { UserPlus, GraduationCap, KeyRound, Search, FileSpreadsheet, Download, Upload } from "lucide-react";
 import api, { errorText, downloadApiFile } from "../../api";
+import { usePagination, Pagination } from "../../components/Pagination.jsx";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
   PhoneInput, CnicInput,
@@ -19,6 +20,10 @@ export default function Students() {
   const [newLogins, setNewLogins] = useState(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+
+  // Only one page of students is drawn at a time; a new class or section goes
+  // back to page 1.
+  const pg = usePagination(list, classId + "|" + sectionId);
 
   function load() {
     api
@@ -94,7 +99,7 @@ export default function Students() {
       <Message type="success" onClose={function () { setDone(""); }}>{done}</Message>
 
       <Card className="mb-4">
-        <form onSubmit={function (e) { e.preventDefault(); load(); }} className="grid sm:grid-cols-4 gap-3 items-end">
+        <form onSubmit={function (e) { e.preventDefault(); pg.setPage(1); load(); }} className="grid sm:grid-cols-4 gap-3 items-end">
           <Field label="Class">
             <Select value={classId} onChange={function (e) { setClassId(e.target.value); }}>
               <option value="">All classes</option>
@@ -146,7 +151,7 @@ export default function Students() {
           <Empty icon={GraduationCap}>No students match this search.</Empty>
         ) : (
           <Table head={["Reg. no", "Name", "Login email", "Class", "Parent", "Phone", "Status", ""]}>
-            {list.map(function (s) {
+            {pg.pageItems.map(function (s) {
               return (
                 <tr key={s.id}>
                   <td className="py-2.5 pr-4 text-slate-500">{s.admission_no}</td>
@@ -164,6 +169,7 @@ export default function Students() {
             })}
           </Table>
         )}
+        <Pagination pg={pg} />
       </Card>
     </Page>
   );

@@ -7,6 +7,7 @@ import {
   Stat, money, MONTHS,
 } from "../../components/ui.jsx";
 import { SlipModal } from "../../components/PrintDocs.jsx";
+import { usePagination, Pagination } from "../../components/Pagination.jsx";
 
 export default function AdminFees() {
   const now = new Date();
@@ -20,6 +21,9 @@ export default function AdminFees() {
   const [done, setDone] = useState("");
 
   const [filters, setFilters] = useState({ month: "", year: now.getFullYear(), status: "", class_id: "" });
+
+  // Only one page of slips is drawn at a time; a new filter goes back to page 1.
+  const pg = usePagination(slips, JSON.stringify(filters));
 
   const [gen, setGen] = useState({
     month: now.getMonth() + 1, year: now.getFullYear(), months_count: 1, due_day: 10, other_fee: 0, class_id: "",
@@ -155,7 +159,7 @@ export default function AdminFees() {
           <Empty icon={Receipt}>No fee slips match these filters. Generate slips for a month above.</Empty>
         ) : (
           <Table head={["Student", "Class", "Period", "Total", "Paid", "Balance", "Status", ""]}>
-            {slips.map(function (s) {
+            {pg.pageItems.map(function (s) {
               return (
                 <tr key={s.id} className="relative">
                   <td className="py-2.5 pr-4">
@@ -189,6 +193,7 @@ export default function AdminFees() {
             })}
           </Table>
         )}
+        <Pagination pg={pg} />
       </Card>
 
       {open && <SlipModal slip={open} onClose={function () { setOpen(null); }} />}
@@ -343,7 +348,7 @@ function InlinePayment({ slip, onClose, onSaved }) {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-wrap items-center gap-2 absolute right-[22px] top-1/2 translate-y-[-50%] bg-white">
+    <form onSubmit={save} className="flex flex-wrap items-center gap-2 absolute right-[22px] top-1/2 -translate-y-1/2 bg-white">
       <Input
         type="number"
         min="1"
