@@ -104,7 +104,7 @@ export default function AdminFees() {
             <Input type="number" min="1" max="28" value={gen.due_day} onChange={function (e) { setGen({ ...gen, due_day: Number(e.target.value) }); }} />
           </Field>
 
-          <Field label="Extra charges" hint="Exam or lab fee. Optional.">
+          <Field label="Extra charges">
             <Input type="number" value={gen.other_fee} onChange={function (e) { setGen({ ...gen, other_fee: Number(e.target.value) }); }} />
           </Field>
 
@@ -157,7 +157,7 @@ export default function AdminFees() {
           <Table head={["Student", "Class", "Period", "Total", "Paid", "Balance", "Status", ""]}>
             {slips.map(function (s) {
               return (
-                <tr key={s.id}>
+                <tr key={s.id} className="relative">
                   <td className="py-2.5 pr-4">
                     <span className="font-medium">{s.student_name}</span>
                     <span className="block text-xs text-slate-400">{s.admission_no}</span>
@@ -343,7 +343,7 @@ function InlinePayment({ slip, onClose, onSaved }) {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-wrap items-center gap-2">
+    <form onSubmit={save} className="flex flex-wrap items-center gap-2 absolute right-[22px] top-1/2 translate-y-[-50%] bg-white">
       <Input
         type="number"
         min="1"
