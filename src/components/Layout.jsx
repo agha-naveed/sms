@@ -8,6 +8,7 @@ import {
 import { useAuth } from "../auth.jsx";
 import { SCHOOL, Crest } from "../school.jsx";
 import api from "../api";
+import Avatar from "./Avatar.jsx";
 
 
 const MENUS = {
@@ -132,7 +133,6 @@ export default function Layout({ children }) {
     );
   }
 
-  const initials = (user.name || "?").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase();
 
   return (
     <div className="min-h-screen bg-paper flex flex-col md:flex-row">
@@ -225,9 +225,7 @@ export default function Layout({ children }) {
         </nav>
 
         <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-brand-500/30 text-white flex items-center justify-center text-sm font-bold shrink-0">
-            {initials}
-          </span>
+          <Avatar name={user.name} photo={user.photo} size={36} />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-white truncate">{user.name}</p>
             <p className="text-xs text-white/45 truncate">{user.email}</p>

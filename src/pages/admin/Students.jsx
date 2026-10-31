@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { UserPlus, GraduationCap, KeyRound, Search, FileSpreadsheet, Download, Upload } from "lucide-react";
 import api, { errorText, downloadApiFile } from "../../api";
 import { usePagination, Pagination } from "../../components/Pagination.jsx";
+import Avatar from "../../components/Avatar.jsx";
+import PhotoUpload from "../../components/PhotoUpload.jsx";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
   PhoneInput, CnicInput,
@@ -142,6 +144,7 @@ export default function Students() {
           student={editing}
           classes={classes}
           onClose={function () { setEditing(null); }}
+          onPhotoChanged={load}
           onSaved={function () { setEditing(null); setDone("Student updated."); load(); }}
         />
       )}
@@ -155,7 +158,12 @@ export default function Students() {
               return (
                 <tr key={s.id}>
                   <td className="py-2.5 pr-4 text-slate-500">{s.admission_no}</td>
-                  <td className="py-2.5 pr-4 font-medium">{s.name}</td>
+                  <td className="py-2.5 pr-4 font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      <Avatar name={s.name} photo={s.photo} size={28} />
+                      {s.name}
+                    </span>
+                  </td>
                   <td className="py-2.5 pr-4 text-slate-500">{s.email}</td>
                   <td className="py-2.5 pr-4">{s.class_name || "-"} {s.section_name ? "- " + s.section_name : ""}</td>
                   <td className="py-2.5 pr-4">{s.parent_name || "-"}</td>
@@ -319,7 +327,8 @@ function AddStudent({ classes, onAdded, onError }) {
   );
 }
 
-function EditStudent({ student, classes, onClose, onSaved }) {
+function EditStudent({ student, classes, onClose, onSaved, onPhotoChanged }) {
+  const [photo, setPhoto] = useState(student.photo || null);
   const [classId, setClassId] = useState(student.class_id || "");
   const [sections, setSections] = useState([]);
   const [sectionId, setSectionId] = useState(student.section_id || "");
@@ -350,6 +359,15 @@ function EditStudent({ student, classes, onClose, onSaved }) {
   return (
     <Card title={"Edit " + student.name} className="mb-4">
       <Message type="error">{error}</Message>
+
+      <div className="mb-4 pb-4 border-b border-slate-100">
+        <PhotoUpload
+          name={student.name}
+          photo={photo}
+          path={"/auth/photo/" + student.user_id}
+          onChanged={function (url) { setPhoto(url); onPhotoChanged(); }}
+        />
+      </div>
 
       <div className="grid sm:grid-cols-4 gap-3 items-end">
         <Field label="Class">

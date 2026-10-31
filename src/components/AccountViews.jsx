@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, KeyRound, UserCircle } from "lucide-react";
 import api, { errorText } from "../api";
 import { useAuth } from "../auth.jsx";
+import PhotoUpload from "./PhotoUpload.jsx";
 import {
   Page, Card, Table, Button, Field, Input, Message, Loading, Empty, PhoneInput,
 } from "./ui.jsx";
@@ -104,6 +105,15 @@ export function MyAccount() {
   return (
     <Page title="My account" subtitle="Your details and your password.">
       <div className="max-w-md space-y-4">
+        <Card title="Profile picture" icon={UserCircle}>
+          <PhotoUpload
+            name={user.name}
+            photo={user.photo}
+            path="/auth/photo"
+            onChanged={function () { refresh(); }}
+          />
+        </Card>
+
         <Card title="Your details" icon={UserCircle}>
           <Message type="error" onClose={function () { setError(""); }}>{error}</Message>
           <Message type="success" onClose={function () { setDone(""); }}>{done}</Message>

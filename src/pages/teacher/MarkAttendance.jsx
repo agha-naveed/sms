@@ -2,7 +2,7 @@
 // inside the daily window the admin sets (for example 7:00 to 11:00 AM).
 // Any teacher assigned to a class can still open the Reports tab.
 import { useEffect, useState } from "react";
-import { Check, X, CalendarOff, Users, Clock3, ShieldAlert } from "lucide-react";
+import { Check, X, CalendarOff, Users, Clock3, ShieldAlert, LockKeyhole } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty, Tabs,
@@ -31,6 +31,7 @@ export default function MarkAttendance() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("mark");
+  const [reloadKey, setReloadKey] = useState(0);   // bump to load the sheet again
 
   useEffect(function () {
     api.get("/teachers/my-classes").then(function (res) { setMyClasses(res.data); }).catch(function (err) { setError(errorText(err)); });
@@ -67,7 +68,7 @@ export default function MarkAttendance() {
         })
         .catch(function (err) { setError(errorText(err)); });
     },
-    [picked, date]
+    [picked, date, reloadKey]
   );
 
   function setStatus(studentId, status) {
@@ -98,6 +99,7 @@ export default function MarkAttendance() {
       });
 
       setResult(res.data);
+      setReloadKey(function (k) { return k + 1; });   // the sheet locks again
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -106,6 +108,13 @@ export default function MarkAttendance() {
   }
 
   if (myClasses === null || ownSections === null) return <Loading />;
+
+  // Locked: the teacher cannot change it themselves. An approved request
+  // from the admin opens it once.
+  const locked = roster
+    ? !roster.reopened && (roster.already_marked || !roster.within_window) && !roster.is_holiday
+    : false;
+  const readOnly = roster ? roster.is_holiday || (roster.already_marked && !roster.reopened) : false;
 
   return (
     <Page title="Attendance" subtitle="Mark every student, then submit once for the whole class.">
@@ -179,13 +188,20 @@ export default function MarkAttendance() {
                 </Message>
               )}
 
-              {roster.already_marked && (
+              {roster.reopened && (
                 <Message type="info">
-                  Attendance for this date was already submitted. Only the admin can change it now.
+                  The admin has opened this attendance for one change. Fix it and submit; it locks again after that.
                 </Message>
               )}
 
-              {!roster.already_marked && !roster.within_window && (
+              {roster.already_marked && !roster.reopened && (
+                <Message type="info">
+                  Attendance for this date was already submitted, so it is locked.
+                  If a student has a good reason for being late, ask the admin to open it once more below.
+                </Message>
+              )}
+
+              {!roster.already_marked && !roster.within_window && !roster.reopened && (
                 <Message type="error">
                   <span className="inline-flex items-center gap-1.5">
                     <Clock3 size={14} />
@@ -201,7 +217,7 @@ export default function MarkAttendance() {
                   variant="plain"
                   size="sm"
                   onClick={function () { markAll("present"); }}
-                  disabled={roster.already_marked || roster.is_holiday}
+                  disabled={readOnly}
                 >
                   Mark everyone present
                 </Button>
@@ -227,19 +243,19 @@ export default function MarkAttendance() {
                         <Choice
                           label="Present" icon={Check}
                           active={marks[s.id] === "present"} color="good"
-                          disabled={roster.already_marked || roster.is_holiday}
+                          disabled={readOnly}
                           onClick={function () { setStatus(s.id, "present"); }}
                         />
                         <Choice
                           label="Absent" icon={X}
                           active={marks[s.id] === "absent"} color="bad"
-                          disabled={roster.already_marked || roster.is_holiday}
+                          disabled={readOnly}
                           onClick={function () { setStatus(s.id, "absent"); }}
                         />
                         <Choice
                           label="Leave" icon={CalendarOff}
                           active={marks[s.id] === "leave"} color="slate"
-                          disabled={roster.already_marked || roster.is_holiday}
+                          disabled={readOnly}
                           onClick={function () { setStatus(s.id, "leave"); }}
                         />
                       </div>
@@ -252,19 +268,29 @@ export default function MarkAttendance() {
                 <Button
                   onClick={submit}
                   loading={busy}
-                  disabled={roster.already_marked || roster.is_holiday || !roster.within_window}
+                  disabled={readOnly || !roster.within_window}
                 >
                   {busy ? "Submitting..." : "Submit attendance"}
                 </Button>
                 <p className="text-xs text-slate-400 mt-2">
-                  {!roster.within_window && !roster.already_marked
-                    ? "Come back during the attendance window to submit."
+                  {!roster.within_window && !roster.already_marked && !roster.reopened
+                    ? "Come back during the attendance window to submit, or ask the admin to open it."
                     : Object.values(marks).filter(function (v) { return v === "absent"; }).length > 0
                     ? "The parents of every student marked absent will be notified straight away."
                     : "No one is marked absent, so no notifications will be sent."}
                 </p>
               </div>
             </Card>
+          )}
+
+          {roster && locked && (
+            <ReopenRequest
+              roster={roster}
+              classId={picked.split("-")[0]}
+              sectionId={picked.split("-")[1]}
+              date={date}
+              onSent={function () { setReloadKey(function (k) { return k + 1; }); }}
+            />
           )}
         </>
       )}
@@ -292,5 +318,74 @@ function Choice({ label, icon: Icon, active, color, onClick, disabled }) {
       <Icon size={14} />
       <span className="hidden sm:inline">{label}</span>
     </button>
+  );
+}
+
+// When attendance is locked, the class teacher can ask the admin to open it
+// once more (for example a student came late and was marked absent, and
+// there is a good reason).
+function ReopenRequest({ roster, classId, sectionId, date, onSent }) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const request = roster.request;
+
+  async function send(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      await api.post("/attendance/requests", {
+        class_id: Number(classId), section_id: Number(sectionId), date: date, reason: reason,
+      });
+      setReason("");
+      onSent();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (request && request.status === "pending") {
+    return (
+      <Card className="mt-4" title="Request sent" icon={LockKeyhole}>
+        <p className="text-sm text-slate-600">
+          You asked the admin to open this attendance once more. You will be notified when they decide.
+        </p>
+        <p className="text-sm text-slate-500 mt-2 bg-slate-50 rounded-lg p-3">{request.reason}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      className="mt-4"
+      title="Need to change this attendance?"
+      icon={LockKeyhole}
+      description="A student may have a good reason for being late. Ask the admin to open it once more for this section and date."
+    >
+      {request && request.status === "rejected" && (
+        <Message type="error">
+          The admin refused your last request{request.admin_note ? ": " + request.admin_note : "."} You can send a new one.
+        </Message>
+      )}
+      <Message type="error" onClose={function () { setError(""); }}>{error}</Message>
+
+      <form onSubmit={send} className="grid sm:grid-cols-4 gap-3 items-end">
+        <div className="sm:col-span-3">
+          <Field label="Reason">
+            <Input
+              value={reason}
+              onChange={function (e) { setReason(e.target.value); }}
+              placeholder="For example: Ali arrived at 9:30 because of a hospital visit."
+              required
+            />
+          </Field>
+        </div>
+        <Button type="submit" loading={busy}>Ask admin to open it</Button>
+      </form>
+    </Card>
   );
 }

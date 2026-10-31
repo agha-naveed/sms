@@ -29,6 +29,10 @@ export default function AdminFees() {
     month: now.getMonth() + 1, year: now.getFullYear(), months_count: 1, due_day: 10, other_fee: 0, class_id: "",
   });
 
+  // Who the slips are for: everyone, one class, or one specific student.
+  const [target, setTarget] = useState("all");
+  const [student, setStudent] = useState(null);   // { id, name, admission_no } when a student is picked
+
   function load() {
     api
       .get("/fees", { params: { month: filters.month || undefined, year: filters.year || undefined, status: filters.status || undefined, class_id: filters.class_id || undefined } })
@@ -48,7 +52,16 @@ export default function AdminFees() {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/fees/generate", gen);
+      if (target === "student" && !student) {
+        setError("Search for the student and pick them first.");
+        return;
+      }
+
+      const res = await api.post("/fees/generate", {
+        ...gen,
+        class_id: target === "class" ? gen.class_id : "",
+        student_id: target === "student" ? student.id : "",
+      });
       setDone(
         res.data.created + " slips created for " + res.data.covers +
         (res.data.already_existed > 0
@@ -83,6 +96,32 @@ export default function AdminFees() {
 
       <Card title="Generate monthly fee slips" icon={Wand2} className="mb-4">
         <form onSubmit={generate} className="grid sm:grid-cols-6 gap-3 items-end">
+          <Field label="Make slips for">
+            <Select
+              value={target}
+              onChange={function (e) { setTarget(e.target.value); setStudent(null); }}
+            >
+              <option value="all">All students</option>
+              <option value="class">One class</option>
+              <option value="student">One student</option>
+            </Select>
+          </Field>
+
+          {target === "class" && (
+            <Field label="Class">
+              <Select value={gen.class_id} onChange={function (e) { setGen({ ...gen, class_id: e.target.value }); }} required>
+                <option value="">Choose a class</option>
+                {classes.map(function (c) { return <option key={c.id} value={c.id}>{c.name}</option>; })}
+              </Select>
+            </Field>
+          )}
+
+          {target === "student" && (
+            <div className="sm:col-span-4">
+              <StudentPicker student={student} onPick={setStudent} onError={setError} />
+            </div>
+          )}
+
           <Field label="Starting month">
             <Select value={gen.month} onChange={function (e) { setGen({ ...gen, month: Number(e.target.value) }); }}>
               {MONTHS.map(function (m, i) { return <option key={m} value={i + 1}>{m}</option>; })}
@@ -198,6 +237,76 @@ export default function AdminFees() {
 
       {open && <SlipModal slip={open} onClose={function () { setOpen(null); }} />}
     </Page>
+  );
+}
+
+// Search by name or registration number, then pick one student from the results.
+function StudentPicker({ student, onPick, onError }) {
+  const [text, setText] = useState("");
+  const [found, setFound] = useState([]);
+  const [searched, setSearched] = useState(false);
+
+  async function search() {
+    if (!text.trim()) return;
+    try {
+      const res = await api.get("/students", { params: { search: text.trim() } });
+      setFound(res.data.slice(0, 8));
+      setSearched(true);
+    } catch (err) {
+      onError(errorText(err));
+    }
+  }
+
+  if (student) {
+    return (
+      <Field label="Student">
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+          <span>
+            <strong>{student.name}</strong> <span className="text-slate-400">{student.admission_no}</span>
+            {student.class_name && <span className="text-slate-500"> · {student.class_name} {student.section_name || ""}</span>}
+          </span>
+          <button type="button" className="text-teal font-semibold underline" onClick={function () { onPick(null); setFound([]); setSearched(false); }}>
+            Change
+          </button>
+        </div>
+      </Field>
+    );
+  }
+
+  return (
+    <div>
+      <Field label="Student" hint="Type a name or registration number, then press Search.">
+        <div className="flex gap-2">
+          <Input
+            value={text}
+            onChange={function (e) { setText(e.target.value); }}
+            onKeyDown={function (e) { if (e.key === "Enter") { e.preventDefault(); search(); } }}
+            placeholder="Name or registration number"
+          />
+          <Button type="button" variant="plain" onClick={search}>Search</Button>
+        </div>
+      </Field>
+
+      {searched && found.length === 0 && <p className="text-xs text-slate-400 mt-1">No student matches that.</p>}
+      {found.length > 0 && (
+        <ul className="mt-2 border border-slate-200 rounded-lg divide-y divide-slate-100 bg-white max-h-48 overflow-auto">
+          {found.map(function (s) {
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                  onClick={function () { onPick(s); }}
+                >
+                  <strong>{s.name}</strong> <span className="text-slate-400">{s.admission_no}</span>
+                  <span className="text-slate-500"> · {s.class_name || "-"} {s.section_name || ""}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -348,7 +457,7 @@ function InlinePayment({ slip, onClose, onSaved }) {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-wrap items-center gap-2 absolute right-[22px] top-1/2 -translate-y-1/2 bg-white">
+    <form onSubmit={save} className="flex flex-wrap absolute top-1/2 -translate-y-1/2 right-[22px] bg-white items-center gap-2">
       <Input
         type="number"
         min="1"
