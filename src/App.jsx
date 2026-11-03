@@ -3,7 +3,6 @@ import { useAuth } from "./auth.jsx";
 import { Protected } from "./components/Layout.jsx";
 
 import Login from "./pages/Login.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
 import Apply from "./pages/Apply.jsx";
 import Landing from "./pages/Landing.jsx";
 import ResultPortal from "./pages/ResultPortal.jsx";
@@ -24,7 +23,6 @@ import AdminNotices from "./pages/admin/AdminNotices.jsx";
 import AdminTimetable from "./pages/admin/AdminTimetable.jsx";
 import StaffAttendance from "./pages/admin/StaffAttendance.jsx";
 import AuditLog from "./pages/admin/AuditLog.jsx";
-import PasswordRequests from "./pages/admin/PasswordRequests.jsx";
 
 import TeacherHome from "./pages/teacher/TeacherHome.jsx";
 import MarkAttendance from "./pages/teacher/MarkAttendance.jsx";
@@ -44,14 +42,13 @@ export default function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <p className="p-8 text-slate-500 w-full h-screen flex justify-center items-center">Loading...</p>;
+    return <p className="p-8 text-slate-500">Loading...</p>;
   }
 
   return (
     <Routes>
       {/* open to everyone */}
       <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/apply" element={<Apply />} />
       <Route path="/check" element={<ResultPortal />} />
 
@@ -72,7 +69,6 @@ export default function App() {
       <Route path="/admin/timetable" element={<Protected roles={["admin"]}><AdminTimetable /></Protected>} />
       <Route path="/admin/staff-attendance" element={<Protected roles={["admin"]}><StaffAttendance /></Protected>} />
       <Route path="/admin/audit-log" element={<Protected roles={["admin"]}><AuditLog /></Protected>} />
-      <Route path="/admin/password-requests" element={<Protected roles={["admin"]}><PasswordRequests /></Protected>} />
 
       {/* teacher */}
       <Route path="/teacher" element={<Protected roles={["teacher"]}><TeacherHome /></Protected>} />

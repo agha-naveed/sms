@@ -67,15 +67,6 @@ export default function Notifications() {
                     </span>
                   </div>
                   {n.body && <p className="text-sm text-slate-600 mt-1">{n.body}</p>}
-                  {n.type === "security" && n.title === "Password reset request" && (
-                    <Link
-                      to="/admin/password-requests"
-                      onClick={function () { markRead(n.id); }}
-                      className="inline-block text-sm font-semibold text-teal underline mt-2 mr-4"
-                    >
-                      Review the request
-                    </Link>
-                  )}
                   {!n.is_read && (
                     <button
                       onClick={function () { markRead(n.id); }}

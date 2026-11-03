@@ -70,11 +70,9 @@ export default function Login() {
             />
           </Field>
 
-          <div className="flex justify-end -mt-2">
-            <Link to="/forgot-password" className="text-xs text-teal underline font-medium">
-              Forgot password?
-            </Link>
-          </div>
+          <p className="text-xs text-slate-400 -mt-2">
+            Forgot your password? Ask the school office. They can give you a new one.
+          </p>
 
           <Button type="submit" icon={LogIn} loading={busy} className="w-full" size="lg">
             {busy ? "Signing in..." : "Sign in"}

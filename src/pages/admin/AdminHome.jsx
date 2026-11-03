@@ -2,19 +2,18 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, Users, Contact, BookOpen, CheckCircle2, XCircle,
-  ClipboardCheck, Banknote, ArrowRight, UserPlus, KeyRound,
+  ClipboardCheck, Banknote, ArrowRight, UserPlus, TrendingUp, BarChart3, PieChart,
 } from "lucide-react";
 import api, { errorText } from "../../api";
 import { Page, Card, Stat, Table, Pill, Loading, Message, Empty, money } from "../../components/ui.jsx";
+import { LineChart, BarChart, DonutChart } from "../../components/Charts.jsx";
 
 export default function AdminHome() {
   const [data, setData] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState(0);
   const [error, setError] = useState("");
 
   useEffect(function () {
     api.get("/dashboard").then(function (res) { setData(res.data); }).catch(function (err) { setError(errorText(err)); });
-    api.get("/password-requests/count").then(function (res) { setPendingRequests(res.data.pending); }).catch(function () {});
   }, []);
 
   if (error) return <Message type="error">{error}</Message>;
@@ -42,21 +41,6 @@ export default function AdminHome() {
               <UserPlus size={18} />
             </span>
             {c.pending_admissions} admission application{c.pending_admissions === 1 ? "" : "s"} waiting for review
-          </span>
-          <ArrowRight size={18} className="shrink-0" />
-        </Link>
-      )}
-
-      {pendingRequests > 0 && (
-        <Link
-          to="/admin/password-requests"
-          className="flex items-center justify-between gap-3 bg-warn/5 border border-warn/25 text-ink rounded-2xl px-5 py-4 mb-6 hover:bg-warn/10 transition-colors"
-        >
-          <span className="flex items-center gap-3 font-medium">
-            <span className="w-9 h-9 rounded-xl bg-white text-warn flex items-center justify-center shrink-0">
-              <KeyRound size={18} />
-            </span>
-            {pendingRequests} password reset request{pendingRequests === 1 ? "" : "s"} waiting for your approval
           </span>
           <ArrowRight size={18} className="shrink-0" />
         </Link>
@@ -101,6 +85,38 @@ export default function AdminHome() {
           <Link to="/admin/fees" className="text-sm text-teal font-semibold underline mt-4 inline-flex items-center gap-1">
             Open fee management <ArrowRight size={13} />
           </Link>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <Card title="Attendance, last 14 days" icon={TrendingUp} description="Share of marked students who were present each day.">
+          <LineChart
+            suffix="%"
+            points={data.charts.attendance_trend.map(function (d) {
+              return { label: new Date(d.date + "T12:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "short" }), value: d.percentage };
+            })}
+          />
+        </Card>
+
+        <Card title="Fees received, last 6 months" icon={Banknote} description="Money actually paid in each month.">
+          <BarChart items={data.charts.fees_by_month} format={function (v) { return money(v); }} />
+        </Card>
+
+        <Card title="Students in each class" icon={BarChart3}>
+          <BarChart items={data.charts.students_by_class.map(function (c) { return { label: c.name, value: c.count }; })} />
+        </Card>
+
+        <Card title="Admission applications" icon={PieChart} description="By what has happened to them.">
+          <DonutChart
+            items={data.charts.admissions_by_status.map(function (s) {
+              const colors = { pending: "#d97706", approved: "#15803d", rejected: "#b91c1c" };
+              return {
+                label: s.status.charAt(0).toUpperCase() + s.status.slice(1),
+                value: s.count,
+                color: colors[s.status] || "#64748b",
+              };
+            })}
+          />
         </Card>
       </div>
 

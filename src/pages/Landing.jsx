@@ -545,7 +545,7 @@ const QUESTIONS = [
   { q: "What are the school fees?", a: "This is a government school, so fees are kept low and are the same for every family. Once enrolled, monthly fee slips appear in the parent's own account." },
   { q: "What are the school timings?", a: SCHOOL.hours + "." },
   { q: "How do I find out if my child was accepted?", a: "Search your form number on the result page. It also tells you if the application is still being reviewed, or wasn't accepted." },
-  { q: "I've lost my password - what do I do?", a: "Use \"Forgot password?\" on the sign-in page. The school office is notified, checks it's really you, and once they approve, you choose a new password yourself." },
+  { q: "I've lost my password - what do I do?", a: "Ask the school office. They will check it is really you and give you a new temporary password, which you can change after you sign in." },
 ];
 
 function Faq() {

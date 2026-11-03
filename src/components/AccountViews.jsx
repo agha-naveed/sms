@@ -229,7 +229,7 @@ export function ChangePasswordCard() {
       <p className="text-xs text-slate-400 mt-4">
         {user.role === "admin"
           ? "Forgotten it entirely? Whoever looks after the school's server can reset it with a command (see the README)."
-          : "Forgotten it entirely? Use \"Forgot password?\" on the sign-in page. The school office checks it's you, then lets you choose a new one."}
+          : "Forgotten it entirely? Ask the school office. They can give you a new temporary password, which you can then change here."}
       </p>
     </Card>
   );

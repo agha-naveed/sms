@@ -2,14 +2,17 @@
 // Parent accounts are created automatically when an admission is approved,
 // so this page is mostly for looking things up and adding the odd extra one.
 import { useEffect, useState } from "react";
-import { UserPlus, Contact, Search } from "lucide-react";
+import { UserPlus, Contact, Search, KeyRound } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
-  Page, Card, Button, Input, Field, Message, Loading, Empty, PhoneInput, CnicInput,
+  Page, Card, Button, Input, Field, Message, Loading, Empty, PhoneInput, CnicInput, Confirm, RevealModal,
 } from "../../components/ui.jsx";
 
 export default function Parents() {
   const [list, setList] = useState(null);
+  const [resetting, setResetting] = useState(null);
+  const [newPassword, setNewPassword] = useState(null);
+  const [resetBusy, setResetBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -20,6 +23,19 @@ export default function Parents() {
   }
 
   useEffect(load, []);
+
+  async function confirmReset() {
+    setResetBusy(true);
+    try {
+      const res = await api.put("/parents/" + resetting.id + "/reset-password");
+      setNewPassword({ name: resetting.name, password: res.data.password });
+      setResetting(null);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setResetBusy(false);
+    }
+  }
 
   if (!list) return <Loading />;
 
@@ -86,6 +102,9 @@ export default function Parents() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-slate-500">{p.children} child{p.children === 1 ? "" : "ren"}</p>
+                    <Button size="sm" variant="plain" icon={KeyRound} className="mt-2" onClick={function () { setResetting(p); }}>
+                      Recover password
+                    </Button>
                   </div>
                 </div>
 
@@ -116,6 +135,24 @@ export default function Parents() {
         </div>
       )}
 
+
+      <Confirm
+        open={!!resetting}
+        title={resetting ? "Recover " + resetting.name + "'s password?" : ""}
+        body="A new temporary password will be generated. Their old one will stop working. This doesn't affect their children's own logins."
+        confirmLabel="Recover password"
+        busy={resetBusy}
+        onConfirm={confirmReset}
+        onCancel={function () { setResetting(null); }}
+      />
+
+      {newPassword && (
+        <RevealModal
+          title={newPassword.name + "'s new password"}
+          rows={[{ label: "Password", value: newPassword.password }]}
+          onClose={function () { setNewPassword(null); }}
+        />
+      )}
     </Page>
   );
 }

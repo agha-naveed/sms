@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, Users, GraduationCap, Contact, BookOpen,
   ClipboardCheck, Trophy, Banknote, Megaphone, Bell, FileText, UserCircle,
-  LogOut, Menu, X, Wallet, CalendarClock, ShieldCheck, KeyRound,
+  LogOut, Menu, X, Wallet, CalendarClock, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../auth.jsx";
 import { SCHOOL, Crest } from "../school.jsx";
@@ -36,7 +36,6 @@ const MENUS = {
       { to: "/admin/notices", label: "Notice board", icon: Megaphone },
     ] },
     { group: "Oversight", items: [
-      { to: "/admin/password-requests", label: "Password requests", icon: KeyRound, badge: "requests" },
       { to: "/admin/audit-log", label: "Audit log", icon: ShieldCheck },
     ] },
   ],
@@ -80,7 +79,6 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [pendingRequests, setPendingRequests] = useState(0);
 
   const [isClassTeacher, setIsClassTeacher] = useState(true);
   
@@ -101,12 +99,6 @@ export default function Layout({ children }) {
         if (!stop) setUnread(res.data.unread);
       }).catch(function () {});
 
-      // The admin is also told how many password requests are waiting.
-      if (user.role === "admin") {
-        api.get("/password-requests/count").then(function (res) {
-          if (!stop) setPendingRequests(res.data.pending);
-        }).catch(function () {});
-      }
       if (user.role === "teacher") {
         api.get("/teachers/my-class-teacher-sections").then(function (res) {
           setIsClassTeacher(res.data.length > 0);
@@ -188,11 +180,6 @@ export default function Layout({ children }) {
                       >
                         <Icon size={18} className="shrink-0" />
                         {item.label}
-                        {item.badge === "requests" && pendingRequests > 0 && (
-                          <span className="ml-auto bg-bad text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-                            {pendingRequests}
-                          </span>
-                        )}
                       </NavLink>
                     );
                   })}

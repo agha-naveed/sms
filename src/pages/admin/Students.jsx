@@ -6,7 +6,7 @@ import Avatar from "../../components/Avatar.jsx";
 import PhotoUpload from "../../components/PhotoUpload.jsx";
 import {
   Page, Card, Table, Pill, Button, Select, Input, Field, Message, Loading, Empty,
-  PhoneInput, CnicInput,
+  PhoneInput, CnicInput, Confirm, RevealModal,
 } from "../../components/ui.jsx";
 
 export default function Students() {
@@ -329,6 +329,9 @@ function AddStudent({ classes, onAdded, onError }) {
 
 function EditStudent({ student, classes, onClose, onSaved, onPhotoChanged }) {
   const [photo, setPhoto] = useState(student.photo || null);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState(null);
   const [classId, setClassId] = useState(student.class_id || "");
   const [sections, setSections] = useState([]);
   const [sectionId, setSectionId] = useState(student.section_id || "");
@@ -353,6 +356,19 @@ function EditStudent({ student, classes, onClose, onSaved, onPhotoChanged }) {
       setError(errorText(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function confirmReset() {
+    setResetBusy(true);
+    try {
+      const res = await api.put("/students/" + student.id + "/reset-password");
+      setNewPassword(res.data.password);
+      setConfirmingReset(false);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -395,8 +411,29 @@ function EditStudent({ student, classes, onClose, onSaved, onPhotoChanged }) {
       <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
         <Button onClick={save} loading={busy}>Save changes</Button>
         <Button variant="plain" onClick={onClose}>Cancel</Button>
+        <Button variant="plain" icon={KeyRound} className="sm:ml-auto" onClick={function () { setConfirmingReset(true); }}>
+          Recover password
+        </Button>
       </div>
 
+
+      <Confirm
+        open={confirmingReset}
+        title={"Recover " + student.name + "'s password?"}
+        body="A new temporary password will be generated. Their old one will stop working."
+        confirmLabel="Recover password"
+        busy={resetBusy}
+        onConfirm={confirmReset}
+        onCancel={function () { setConfirmingReset(false); }}
+      />
+
+      {newPassword && (
+        <RevealModal
+          title={student.name + "'s new password"}
+          rows={[{ label: "Password", value: newPassword }]}
+          onClose={function () { setNewPassword(null); }}
+        />
+      )}
     </Card>
   );
 }

@@ -1,11 +1,11 @@
 // Add teachers and decide which class + section each one can work with.
 // Those assignments are what let a teacher mark attendance at all.
 import { useEffect, useState } from "react";
-import { UserPlus, Users, X, Star } from "lucide-react";
+import { UserPlus, Users, X, Star, KeyRound } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty, PhoneInput,
-  Chip, Confirm,
+  Chip, Confirm, RevealModal,
 } from "../../components/ui.jsx";
 
 export default function Teachers() {
@@ -15,6 +15,8 @@ export default function Teachers() {
   const [assigning, setAssigning] = useState(null);
   const [removing, setRemoving] = useState(null); // teacher pending delete confirmation
   const [busy, setBusy] = useState(false);
+  const [resetting, setResetting] = useState(null);     // teacher pending password recovery confirmation
+  const [newPassword, setNewPassword] = useState(null); // { name, password } to show once
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
@@ -35,6 +37,19 @@ export default function Teachers() {
       setDone("Teacher removed.");
       setRemoving(null);
       load();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmReset() {
+    setBusy(true);
+    try {
+      const res = await api.put("/teachers/" + resetting.id + "/reset-password");
+      setNewPassword({ name: resetting.name, password: res.data.password });
+      setResetting(null);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -68,15 +83,6 @@ export default function Teachers() {
         />
       )}
 
-      {assigning && (
-        <AssignClass
-          teacher={assigning}
-          classes={classes}
-          onClose={function () { setAssigning(null); }}
-          onSaved={function (msg) { setAssigning(null); setDone(msg || "Classes assigned."); load(); }}
-        />
-      )}
-
       {list.length === 0 ? (
         <Card><Empty icon={Users}>No teachers yet. Add one to get started.</Empty></Card>
       ) : (
@@ -100,10 +106,22 @@ export default function Teachers() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="plain" onClick={function () { setAssigning(t); }}>Assign classes</Button>
+                    <Button size="sm" variant="plain" onClick={function () { setAssigning(assigning && assigning.id === t.id ? null : t); }}>
+                      {assigning && assigning.id === t.id ? "Close" : "Assign classes"}
+                    </Button>
+                    <Button size="sm" variant="plain" icon={KeyRound} onClick={function () { setResetting(t); }}>Recover password</Button>
                     <Button size="sm" variant="danger" onClick={function () { setRemoving(t); }}>Remove</Button>
                   </div>
                 </div>
+
+                {assigning && assigning.id === t.id && (
+                  <AssignClass
+                    teacher={t}
+                    classes={classes}
+                    onClose={function () { setAssigning(null); }}
+                    onSaved={function (msg) { setAssigning(null); setDone(msg || "Classes assigned."); load(); }}
+                  />
+                )}
 
                 <div className="mt-3 pt-3 border-t border-slate-100">
                   {t.classes.length === 0 ? (
@@ -143,6 +161,24 @@ export default function Teachers() {
         onCancel={function () { setRemoving(null); }}
       />
 
+
+      <Confirm
+        open={!!resetting}
+        title={resetting ? "Recover " + resetting.name + "'s password?" : ""}
+        body="A new temporary password will be generated. Their old password will stop working."
+        confirmLabel="Recover password"
+        busy={busy}
+        onConfirm={confirmReset}
+        onCancel={function () { setResetting(null); }}
+      />
+
+      {newPassword && (
+        <RevealModal
+          title={newPassword.name + "'s new password"}
+          rows={[{ label: "Password", value: newPassword.password }]}
+          onClose={function () { setNewPassword(null); }}
+        />
+      )}
     </Page>
   );
 }
@@ -248,7 +284,8 @@ function AssignClass({ teacher, classes, onClose, onSaved }) {
   const total = pickedSections.length * (pickedSubjects.length === 0 ? 1 : pickedSubjects.length);
 
   return (
-    <Card title={"Assign classes to " + teacher.name} className="mb-4">
+    <div className="mt-4 rounded-xl border border-brand-100 bg-slate-50/70 p-4">
+      <h4 className="font-semibold text-ink mb-3">Assign classes to {teacher.name}</h4>
       <Message type="error">{error}</Message>
 
       <div className="max-w-xs">
@@ -308,6 +345,6 @@ function AssignClass({ teacher, classes, onClose, onSaved }) {
         <Button variant="plain" onClick={onClose}>Cancel</Button>
         {total > 0 && <span className="text-sm text-slate-500">This will add {total} assignment{total === 1 ? "" : "s"}.</span>}
       </div>
-    </Card>
+    </div>
   );
 }

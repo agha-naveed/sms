@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Users, FileText, ClipboardCheck, ArrowRight, Star } from "lucide-react";
+import { BookOpen, Users, FileText, ClipboardCheck, ArrowRight, Star, TrendingUp, BarChart3 } from "lucide-react";
 import api, { errorText } from "../../api";
 import { Page, Card, Stat, Message, Loading, Empty, Pill } from "../../components/ui.jsx";
+import { LineChart, BarChart } from "../../components/Charts.jsx";
 
 export default function TeacherHome() {
   const [data, setData] = useState(null);
@@ -33,6 +34,27 @@ export default function TeacherHome() {
           tone={c.pending_attendance > 0 ? "warn" : "good"}
         />
       </div>
+
+      {data.charts && data.classes.length > 0 && (
+        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+          <Card title="Attendance, last 14 days" icon={TrendingUp} description="Across the sections you teach.">
+            <LineChart
+              suffix="%"
+              points={data.charts.attendance_trend.map(function (d) {
+                return { label: new Date(d.date + "T12:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "short" }), value: d.percentage };
+              })}
+            />
+          </Card>
+
+          <Card title="Students in your sections" icon={BarChart3}>
+            <BarChart
+              items={data.classes.map(function (c) {
+                return { label: c.class_name + " " + c.section_name, value: c.student_count };
+              })}
+            />
+          </Card>
+        </div>
+      )}
 
       <Card title="Your classes" icon={BookOpen}>
         {data.classes.length === 0 ? (
