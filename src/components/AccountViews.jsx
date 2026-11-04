@@ -125,7 +125,6 @@ export function MyAccount() {
 
             <Field
               label={staff ? "Login name" : "Email"}
-              hint={staff ? "Staff addresses end in @school.com." : "This is what you sign in with."}
             >
               {staff ? (
                 <div className="flex">

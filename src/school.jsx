@@ -3,11 +3,11 @@
 import React from "react";
 
 export const SCHOOL = {
-  name: "Government Model School",
-  shortName: "Govt. Model School",
+  name: " Lunar Public School",
+  shortName: " Lunar Public School",
   city: "Skardu, Gilgit-Baltistan",
   tagline: "Teaching children of this valley since 1974.",
-  address: "College Road, Skardu, Gilgit-Baltistan",
+  address: "Thowar Bala, Rondu Gilgit-Baltistan",
   phone: "+92 5815 920011",
   email: "office@modelschool.edu.pk",
   hours: "Monday to Saturday, 8am to 2pm",

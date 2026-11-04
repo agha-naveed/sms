@@ -330,7 +330,7 @@ function WhyUs() {
         <div className="lg:col-span-2 lg:sticky lg:top-24">
           <p className="text-gold text-sm font-medium mb-3">Why families choose us</p>
           <h2 className="font-display text-3xl sm:text-4xl text-valley leading-tight mb-6">
-            A public school built around knowing every child by name.
+           Lunar Public School  built around knowing every child by name.
           </h2>
           <div className="rounded-2xl overflow-hidden shadow-card aspect-[4/3]">
             <img

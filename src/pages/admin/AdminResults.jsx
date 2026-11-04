@@ -221,7 +221,7 @@ function Report({ data, className, sectionName }) {
   return (
     <div className="print-area">
       <div className="hidden print:block mb-4">
-        <h2 className="text-xl font-semibold">Government Model School</h2>
+        <h2 className="text-xl font-semibold"> Lunar Public School</h2>
         <p className="text-sm">
           {data.exam_name} — {className ? className.name : ""}
           {sectionName ? " Section " + sectionName.name : ""}
