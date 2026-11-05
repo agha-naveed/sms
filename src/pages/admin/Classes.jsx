@@ -94,7 +94,7 @@ export default function Classes() {
       <Confirm
         open={!!removing}
         title={removing ? "Delete " + removing.name + "?" : ""}
-        body="Its sections and subjects are deleted too. Students already in this class are not affected."
+        body="Its sections and subjects are deleted too. Students who have left the school are kept in the records but detached from this class. A class with current students cannot be deleted."
         confirmLabel="Delete class"
         danger
         busy={busy}
