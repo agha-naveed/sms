@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useAuth } from "../../auth.jsx";
-import { Page, Card, Empty } from "../../components/ui.jsx";
+import { Page, Card, Empty, Pill } from "../../components/ui.jsx";
 import {
   ResultsView, FeesView, AssignmentsView, ClassTimetableView,
 } from "../../components/SharedViews.jsx";
@@ -24,7 +24,14 @@ export default function ParentPages() {
   const { user } = useAuth();
 
   const children = user.children || [];
-  const [childId, setChildId] = useState(children.length > 0 ? children[0].id : null);
+  // Start on a child who is still enrolled.
+  const firstActive = children.find(function (c) { return c.status === "active"; }) || children[0];
+  const [childId, setChildId] = useState(firstActive ? firstActive.id : null);
+
+  // Every child has left the school: only the dashboard is open.
+  if (user.parent_blocked) {
+    return <Navigate to="/parent" replace />;
+  }
 
   if (!TITLES[view]) {
     return <Navigate to="/parent" replace />;
@@ -65,7 +72,9 @@ export default function ParentPages() {
                 >
                   <span className="block font-semibold">{c.name}</span>
                   <span className={"block text-xs " + (active ? "text-white/80" : "text-slate-500")}>
-                    {c.class_name} - Section {c.section_name} · {c.admission_no}
+                    {c.status === "active"
+                      ? c.class_name + " - Section " + c.section_name + " · " + c.admission_no
+                      : "Left the school · " + c.admission_no}
                   </span>
                 </button>
               );
@@ -74,13 +83,26 @@ export default function ParentPages() {
         </div>
       )}
 
-      {children.length === 1 && (
+      {children.length === 1 && child.status === "active" && (
         <p className="text-sm text-slate-500 mb-4">
           {child.name} · {child.class_name} - Section {child.section_name} · {child.admission_no}
         </p>
       )}
 
-      {view === "subjects" && (
+      {child.status !== "active" && (
+        <Card>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="font-semibold text-ink">{child.name}</h3>
+            <Pill status="left" />
+          </div>
+          <p className="text-sm text-slate-500">
+            {child.name} has left the school, so there is nothing to show here. Choose another child, or
+            contact the school office.
+          </p>
+        </Card>
+      )}
+
+      {child.status === "active" && view === "subjects" && (
         <SubjectsView
           classId={child.class_id}
           sectionId={child.section_id}
@@ -88,7 +110,7 @@ export default function ParentPages() {
           sectionName={child.section_name}
         />
       )}
-      {view === "timetable" && (
+      {child.status === "active" && view === "timetable" && (
         <ClassTimetableView
           classId={child.class_id}
           sectionId={child.section_id}
@@ -96,7 +118,7 @@ export default function ParentPages() {
           isParent={true}
         />
       )}
-      {view === "attendance" && (
+      {child.status === "active" && view === "attendance" && (
         <AttendanceReport
           role="parent"
           studentId={child.id}
@@ -109,11 +131,11 @@ export default function ParentPages() {
           }}
         />
       )}
-      {view === "results" && <ResultsView studentId={child.id} studentName={child.name} />}
-      {view === "assignments" && (
+      {child.status === "active" && view === "results" && <ResultsView studentId={child.id} studentName={child.name} />}
+      {child.status === "active" && view === "assignments" && (
         <AssignmentsView studentId={child.id} canSubmit={false} isParent={true} />
       )}
-      {view === "fees" && <FeesView studentId={child.id} isParent={true} />}
+      {child.status === "active" && view === "fees" && <FeesView studentId={child.id} isParent={true} />}
     </Page>
   );
 }

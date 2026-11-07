@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Check, X, CalendarOff, Users, Clock3, ShieldAlert, LockKeyhole } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
-  Page, Card, Button, Select, Input, Field, Message, Loading, Empty, Tabs,
+  Page, Card, Button, Select, Input, Field, Message, Loading, Empty, Tabs, Pill,
 } from "../../components/ui.jsx";
 import { AttendanceReport } from "../../components/AttendanceReport.jsx";
 
@@ -181,10 +181,22 @@ export default function MarkAttendance() {
             <Card><Empty icon={Users}>There are no active students in this section yet.</Empty></Card>
           ) : (
             <Card>
+              {roster.request && !roster.is_holiday && (
+                <div className="flex flex-wrap items-center gap-2 mb-3 text-sm text-slate-600">
+                  <Pill status={roster.request.status} />
+                  <span>
+                    {roster.request.status === "approved" && "Your reopen request was approved. You can change this attendance once."}
+                    {roster.request.status === "used" && "You changed this attendance after the admin reopened it. It is locked again."}
+                    {roster.request.status === "pending" && "Your reopen request is waiting for the admin."}
+                    {roster.request.status === "rejected" && "Your reopen request was refused."}
+                  </span>
+                </div>
+              )}
+
               {roster.is_holiday && (
                 <Message type="info">
-                  The school is closed on {roster.holiday_name}, so attendance cannot be
-                  marked for this date. Pick another day.
+                  The school is closed on this date ({roster.holiday_name}), so attendance cannot be
+                  marked and nothing is counted. Pick another day.
                 </Message>
               )}
 

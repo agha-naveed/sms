@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, Users, GraduationCap, Contact, BookOpen,
   ClipboardCheck, Trophy, Banknote, Megaphone, Bell, FileText, UserCircle,
-  LogOut, Menu, X, Wallet, CalendarClock, ShieldCheck,
+  LogOut, Menu, X, Wallet, CalendarClock, ShieldCheck, CalendarOff,
 } from "lucide-react";
 import { useAuth } from "../auth.jsx";
 import { SCHOOL, Crest } from "../school.jsx";
@@ -26,6 +26,7 @@ const MENUS = {
       { to: "/admin/classes", label: "Classes & sections", icon: BookOpen },
       { to: "/admin/timetable", label: "Timetable", icon: CalendarClock },
       { to: "/admin/attendance", label: "Student attendance", icon: ClipboardCheck },
+      { to: "/admin/holidays", label: "Holidays & vacations", icon: CalendarOff },
       { to: "/admin/staff-attendance", label: "Staff attendance", icon: Users },
       { to: "/admin/results", label: "Results", icon: Trophy },
     ] },
@@ -82,10 +83,14 @@ export default function Layout({ children }) {
 
   const [isClassTeacher, setIsClassTeacher] = useState(true);
   
+  // A parent whose children have all left the school only gets the dashboard.
+  const limited = user.role === "parent" && user.parent_blocked;
+
   const groups = (MENUS[user.role] || []).map(function (g) {
     return {
       ...g,
       items: g.items.filter(function (item) {
+        if (limited) return item.to === "/parent";
         return !(item.to === "/teacher/attendance" && !isClassTeacher);
       }),
     };
@@ -95,6 +100,7 @@ export default function Layout({ children }) {
     let stop = false;
 
     function load() {
+      if (user.role === "parent" && user.parent_blocked) return;
       api.get("/notifications").then(function (res) {
         if (!stop) setUnread(res.data.unread);
       }).catch(function () {});
@@ -188,7 +194,7 @@ export default function Layout({ children }) {
             );
           })}
 
-          <div className="pt-3 border-t border-white/10 space-y-1">
+          <div className={"pt-3 border-t border-white/10 space-y-1" + (limited ? " hidden" : "")}>
             <NavLink to="/notifications" className={itemClass} onClick={function () { setMenuOpen(false); }}>
               <Bell size={18} className="shrink-0" />
               Notifications

@@ -225,6 +225,47 @@ export function AttendanceReport({ role, studentId, sections, student }) {
             </Card>
           )}
 
+          {data.holidays && data.holidays.length > 0 && (function () {
+            // group the closed days by name, so a two-month vacation is one line
+            const groups = [];
+            data.holidays.forEach(function (h) {
+              const last = groups[groups.length - 1];
+              if (last && last.name === h.name && last.kind === h.kind && last.kind !== "weekly_off") {
+                last.to = h.date; last.days += 1;
+              } else {
+                groups.push({ name: h.name, kind: h.kind, from: h.date, to: h.date, days: 1 });
+              }
+            });
+            const weekly = data.holidays.filter(function (h) { return h.kind === "weekly_off"; }).length;
+            const named = groups.filter(function (g) { return g.kind !== "weekly_off"; });
+            return (
+              <Card title="Closed days (not counted)" className="mb-4">
+                {named.length > 0 && (
+                  <ul className="text-sm text-slate-600 space-y-1.5">
+                    {named.map(function (g, i) {
+                      return (
+                        <li key={i} className="flex flex-wrap items-center gap-2">
+                          <Pill status="holiday" />
+                          <span className="font-medium text-ink">{g.name}</span>
+                          <span className="text-slate-500">
+                            {new Date(g.from + "T12:00:00").toLocaleDateString()}
+                            {g.to !== g.from ? " to " + new Date(g.to + "T12:00:00").toLocaleDateString() : ""}
+                            {g.days > 1 ? " (" + g.days + " days)" : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {weekly > 0 && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    {weekly} weekly off day{weekly === 1 ? "" : "s"} in this period are also left out of the counts.
+                  </p>
+                )}
+              </Card>
+            );
+          })()}
+
           {!single && data.by_student.length > 0 && (
             <Card title="Student by student" className="mb-4">
               <Table head={["Student", "Class", "Present", "Absent", "Leave", "Attendance"]}>

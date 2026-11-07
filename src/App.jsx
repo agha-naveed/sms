@@ -19,6 +19,7 @@ import Classes from "./pages/admin/Classes.jsx";
 import AdminFees from "./pages/admin/AdminFees.jsx";
 import AdminResults from "./pages/admin/AdminResults.jsx";
 import AdminAttendance from "./pages/admin/AdminAttendance.jsx";
+import Holidays from "./pages/admin/Holidays.jsx";
 import AdminNotices from "./pages/admin/AdminNotices.jsx";
 import AdminTimetable from "./pages/admin/AdminTimetable.jsx";
 import StaffAttendance from "./pages/admin/StaffAttendance.jsx";
@@ -64,6 +65,7 @@ export default function App() {
       <Route path="/admin/classes" element={<Protected roles={["admin"]}><Classes /></Protected>} />
       <Route path="/admin/fees" element={<Protected roles={["admin"]}><AdminFees /></Protected>} />
       <Route path="/admin/attendance" element={<Protected roles={["admin"]}><AdminAttendance /></Protected>} />
+      <Route path="/admin/holidays" element={<Protected roles={["admin"]}><Holidays /></Protected>} />
       <Route path="/admin/results" element={<Protected roles={["admin"]}><AdminResults /></Protected>} />
       <Route path="/admin/notices" element={<Protected roles={["admin"]}><AdminNotices /></Protected>} />
       <Route path="/admin/timetable" element={<Protected roles={["admin"]}><AdminTimetable /></Protected>} />

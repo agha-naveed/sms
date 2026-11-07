@@ -2,7 +2,7 @@
 // came from attendance, fees, results and important school notices.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Megaphone, ArrowRight, Users } from "lucide-react";
+import { AlertTriangle, Megaphone, ArrowRight, Users, GraduationCap } from "lucide-react";
 import { useAuth } from "../../auth.jsx";
 import api, { errorText } from "../../api";
 import { Page, Card, Pill, Message, Loading, Empty, money } from "../../components/ui.jsx";
@@ -17,18 +17,15 @@ export default function ParentHome() {
   useEffect(function () {
     api
       .get("/dashboard")
-      .then(function (res) { setData(res.data); })
+      .then(function (res) {
+        setData(res.data);
+        // Every child has left: the account only shows this page.
+        if (res.data.all_left) return;
+
+        api.get("/notifications").then(function (r) { setAlerts(r.data.items.slice(0, 5)); }).catch(function () {});
+        api.get("/notices").then(function (r) { setNotices(r.data.slice(0, 3)); }).catch(function () {});
+      })
       .catch(function (err) { setError(errorText(err)); });
-
-    api
-      .get("/notifications")
-      .then(function (res) { setAlerts(res.data.items.slice(0, 5)); })
-      .catch(function () {});
-
-    api
-      .get("/notices")
-      .then(function (res) { setNotices(res.data.slice(0, 3)); })
-      .catch(function () {});
   }, []);
 
   if (error) return <Message type="error">{error}</Message>;
@@ -36,6 +33,13 @@ export default function ParentHome() {
 
   return (
     <Page title={"Hello, " + user.name.split(" ")[0]} subtitle="How your children are doing.">
+      {data.all_left && (
+        <Message type="info">
+          {data.children.length === 1 ? "Your child has" : "Your children have"} left the school, so this
+          account can only show this page. Please contact the school office if something looks wrong.
+        </Message>
+      )}
+
       {data.children.length === 0 ? (
         <Card>
           <Empty icon={Users}>No child is linked to your account yet. Please contact the school office.</Empty>
@@ -43,6 +47,23 @@ export default function ParentHome() {
       ) : (
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           {data.children.map(function (child) {
+            if (child.left) {
+              return (
+                <Card key={child.id}>
+                  <div className="flex justify-between items-start gap-3">
+                    <div>
+                      <h3 className="font-semibold text-ink">{child.name}</h3>
+                      <p className="text-sm text-slate-500">Admission no. {child.admission_no}</p>
+                    </div>
+                    <Pill status="left" />
+                  </div>
+                  <p className="text-sm text-slate-500 mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
+                    <GraduationCap size={16} className="text-slate-400 shrink-0" />
+                    {child.name} has left the school and is no longer enrolled.
+                  </p>
+                </Card>
+              );
+            }
             return (
               <Card key={child.id}>
                 <div className="flex justify-between items-start">
@@ -53,8 +74,18 @@ export default function ParentHome() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-400 mb-1">Today</p>
-                    <Pill status={child.today_status === "not marked" ? "leave" : child.today_status} />
+                    {child.today_status ? (
+                      <>
+                        <p className="text-xs text-slate-400 mb-1">Today</p>
+                        <Pill status={child.today_status} />
+                      </>
+                    ) : child.today_holiday ? (
+                      <>
+                        <p className="text-xs text-slate-400 mb-1">Today</p>
+                        <Pill status="holiday" />
+                        <p className="text-xs text-slate-400 mt-1">{child.today_holiday}</p>
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
@@ -104,7 +135,7 @@ export default function ParentHome() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {!data.all_left && <div className="grid md:grid-cols-2 gap-4">
         <Card title="Recent alerts" icon={AlertTriangle}>
           {alerts.length === 0 ? (
             <p className="text-sm text-slate-500">
@@ -159,7 +190,7 @@ export default function ParentHome() {
             </div>
           )}
         </Card>
-      </div>
+      </div>}
     </Page>
   );
 }

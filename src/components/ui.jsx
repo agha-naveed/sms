@@ -267,7 +267,9 @@ const STATUS_MAP = {
   unpaid: { tone: "warn", label: "Unpaid" },
   partial: { tone: "warn", label: "Part paid" },
   pending: { tone: "warn", label: "Pending" },
-  used: { tone: "good", label: "Used" },
+  used: { tone: "slate", label: "Changed once" },
+  left: { tone: "bad", label: "Left school" },
+  holiday: { tone: "slate", label: "Holiday" },
   leave: { tone: "slate", label: "Leave" },
   "not marked": { tone: "slate", label: "Not marked" },
 };

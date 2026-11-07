@@ -175,7 +175,7 @@ function ReopenRequests() {
             {decided.map(function (r) {
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-2">
-                  <Pill status={r.status === "used" ? "paid" : r.status} />
+                  <Pill status={r.status} />
                   {r.teacher_name}, {r.class_name} - {r.section_name}, {new Date(r.date + "T12:00:00").toLocaleDateString()}
                 </li>
               );

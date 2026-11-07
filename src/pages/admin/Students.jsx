@@ -168,7 +168,7 @@ export default function Students() {
                   <td className="py-2.5 pr-4">{s.class_name || "-"} {s.section_name ? "- " + s.section_name : ""}</td>
                   <td className="py-2.5 pr-4">{s.parent_name || "-"}</td>
                   <td className="py-2.5 pr-4 text-slate-500">{s.parent_phone || "-"}</td>
-                  <td className="py-2.5 pr-4"><Pill status={s.status === "active" ? "present" : "leave"} /></td>
+                  <td className="py-2.5 pr-4"><Pill status={s.status === "active" ? "present" : "left"} /></td>
                   <td className="py-2.5 pr-4">
                     <Button size="sm" variant="plain" onClick={function () { setEditing(s); }}>Edit</Button>
                   </td>

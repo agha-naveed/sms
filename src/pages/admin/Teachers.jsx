@@ -1,7 +1,7 @@
 // Add teachers and decide which class + section each one can work with.
 // Those assignments are what let a teacher mark attendance at all.
 import { useEffect, useState } from "react";
-import { UserPlus, Users, X, Star, KeyRound } from "lucide-react";
+import { UserPlus, Users, X, Star, KeyRound, Search } from "lucide-react";
 import api, { errorText } from "../../api";
 import {
   Page, Card, Button, Select, Input, Field, Message, Loading, Empty, PhoneInput,
@@ -19,6 +19,9 @@ export default function Teachers() {
   const [newPassword, setNewPassword] = useState(null); // { name, password } to show once
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("");
 
   function load() {
     api.get("/teachers").then(function (res) { setList(res.data); }).catch(function (err) { setError(errorText(err)); });
@@ -63,6 +66,44 @@ export default function Teachers() {
 
   if (!list) return <Loading />;
 
+  // Every class and section that at least one teacher is working with.
+  function placesOf(t) {
+    const places = t.classes.map(function (c) { return { cls: c.class_name, sec: c.section_name, subject: c.subject_name || "" }; });
+    if (t.class_teacher_of) places.push({ cls: t.class_teacher_of.class_name, sec: t.class_teacher_of.section_name, subject: "" });
+    return places;
+  }
+
+  const classOptions = [];
+  const sectionOptions = [];
+  list.forEach(function (t) {
+    placesOf(t).forEach(function (p) {
+      if (p.cls && !classOptions.includes(p.cls)) classOptions.push(p.cls);
+      if (p.sec && !sectionOptions.includes(p.sec)) sectionOptions.push(p.sec);
+    });
+  });
+  classOptions.sort(function (a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true }); });
+  sectionOptions.sort();
+
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = list.filter(function (t) {
+    const places = placesOf(t);
+
+    if (classFilter && !places.some(function (p) { return p.cls === classFilter; })) return false;
+    if (sectionFilter && !places.some(function (p) { return p.sec === sectionFilter; })) return false;
+    // when both are chosen, they must be the same assignment (e.g. Class 5 - Section B)
+    if (classFilter && sectionFilter && !places.some(function (p) { return p.cls === classFilter && p.sec === sectionFilter; })) return false;
+
+    if (words.length === 0) return true;
+    const haystack = [
+      t.name, t.email, t.phone, t.qualification,
+      t.class_teacher_of ? "class teacher" : "",
+      places.map(function (p) { return p.cls + " " + p.sec + " section " + p.subject; }).join(" "),
+    ].join(" ").toLowerCase();
+    return words.every(function (w) { return haystack.includes(w); });
+  });
+
+  const filtering = words.length > 0 || classFilter || sectionFilter;
+
   return (
     <Page
       title="Teachers"
@@ -83,11 +124,57 @@ export default function Teachers() {
         />
       )}
 
+      {list.length > 0 && (
+        <Card className="mb-4">
+          <div className="grid sm:grid-cols-4 gap-3 items-end">
+            <div className="sm:col-span-2">
+              <Field label="Search" hint="Name, email, phone, qualification, subject, class or section.">
+                <div className="relative">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="pl-9"
+                    value={search}
+                    onChange={function (e) { setSearch(e.target.value); }}
+                    placeholder="For example: Ayesha, Mathematics, Class 5"
+                  />
+                </div>
+              </Field>
+            </div>
+            <Field label="Class">
+              <Select value={classFilter} onChange={function (e) { setClassFilter(e.target.value); }}>
+                <option value="">All classes</option>
+                {classOptions.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
+              </Select>
+            </Field>
+            <Field label="Section">
+              <Select value={sectionFilter} onChange={function (e) { setSectionFilter(e.target.value); }}>
+                <option value="">All sections</option>
+                {sectionOptions.map(function (c) { return <option key={c} value={c}>Section {c}</option>; })}
+              </Select>
+            </Field>
+          </div>
+          {filtering && (
+            <p className="text-xs text-slate-500 mt-3">
+              Showing {shown.length} of {list.length} teachers.{" "}
+              <button
+                type="button"
+                className="text-teal font-semibold"
+                onClick={function () { setSearch(""); setClassFilter(""); setSectionFilter(""); }}
+              >
+                Clear search
+              </button>
+            </p>
+          )}
+        </Card>
+      )}
+
       {list.length === 0 ? (
         <Card><Empty icon={Users}>No teachers yet. Add one to get started.</Empty></Card>
+      ) : shown.length === 0 ? (
+        <Card><Empty icon={Search}>No teacher matches your search.</Empty></Card>
       ) : (
         <div className="space-y-3">
-          {list.map(function (t) {
+          {shown.map(function (t) {
             return (
               <Card key={t.id}>
                 <div className="flex flex-wrap justify-between gap-3">
